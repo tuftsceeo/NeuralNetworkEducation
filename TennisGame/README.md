@@ -21,6 +21,6 @@ Real Stuff:
     big_cnn_hub_program.py:
         hub program built with extra long floats. did not work on spike (too big)
     cnn_hub_program.py:
-        hub program built with shorter floats, but still too big for spike
+        hub program built with shorter floats to overcome the ValueError, but still too big for spike
     
 
