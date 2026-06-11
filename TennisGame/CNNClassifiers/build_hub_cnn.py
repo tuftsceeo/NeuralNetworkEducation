@@ -10,10 +10,10 @@ import torch
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from TennisCNNClassifier import train, extract_weights
+from TennisCNNClassifierV3 import train, extract_weights
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_PATH = os.path.join(SCRIPT_DIR, "cnn_hub_program.py")
+OUTPUT_PATH = os.path.join(SCRIPT_DIR, "v3_hub_cnn_program.py")
 
 GESTURES = ["Forehand", "Backhand", "Overhead", "None"]
 
@@ -42,22 +42,21 @@ def build_hub_program(weights: dict) -> str:
 # Press LEFT button to classify a 1.5 second gesture window.
 # Displays first initial of classified gesture on the light matrix.
 
-import hub
-import motor
+import gc
 import time
 from hub import motion_sensor, light_matrix, button
 
 # ── Trained weights ───────────────────────────────────────────────────────────
 
-# conv1: (32, 6, 5) — 32 kernels, 6 input channels, kernel size 5
+# conv1
 WC1 = {fmt(weights['wc1'])}
 BC1 = {fmt(weights['bc1'])}
 
-# conv2: (64, 32, 5) — 64 kernels, 32 input channels, kernel size 5
+# conv2
 WC2 = {fmt(weights['wc2'])}
 BC2 = {fmt(weights['bc2'])}
 
-# fc: (4, 64)
+# fc
 WF = {fmt(weights['wf'])}
 BF = {fmt(weights['bf'])}
 
@@ -68,10 +67,6 @@ NUM_SAMPLES    = 30
 GESTURES       = {GESTURES}
 
 # ── Pure-Python forward pass ──────────────────────────────────────────────────
-
-def relu(x):
-    return [v if v > 0 else 0.0 for v in x]
-
 def conv1d(x, weight, bias, kernel_size):
     \"\"\"
     x:      list of shape (time, in_channels)
@@ -85,6 +80,7 @@ def conv1d(x, weight, bias, kernel_size):
     out = []
     for t in range(out_len):
         frame = []
+        gc.collect()
         for oc in range(out_channels):
             val = bias[oc]
             for k in range(kernel_size):
@@ -117,6 +113,17 @@ def linear(x, weight, bias):
         sum(weight[i][j] * x[j] for j in range(len(x))) + bias[i]
         for i in range(len(bias))
     ]
+
+def relu(x):
+    i = 0
+    for row in x:
+        j = 0
+        for v in row:
+            x[i][j] = max(0.0, v)
+            j += 1
+        gc.collect()
+        i += 1
+    return x
 
 def predict(sample):
     \"\"\"

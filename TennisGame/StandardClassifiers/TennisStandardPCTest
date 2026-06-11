@@ -1,11 +1,11 @@
 # Just training and running on my PC to see if it actually works before I put on spike
-from TennisCNNClassifier import train
-import math
+# Below just change this import to test the various versions
+from TennisStandardClassifierV1 import train
 import asyncio
 import sys
 import os
 import torch
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from Hubs import Hub
 
 sample_buffer = []
@@ -20,14 +20,12 @@ async def grab(message):
 
     # Extract the 6 values we need in the right order
     row = [imu.get(k, 0) for k in IMU_KEYS]
-    sample_buffer.append(row)
+    for v in row:
+        sample_buffer.append(v)
 
 def predict(sample, model):
     # turn into tensor
     sample_tensor = torch.tensor(sample, dtype=torch.float32)
-
-    # add a third dimension to sample
-    sample_tensor = sample_tensor.unsqueeze(0)
 
     # Pass through model
     output = model(sample_tensor)
@@ -45,8 +43,8 @@ async def grab_data(hub):
     hub.collect = False
 
     # Check we got an okay sample
-    if len(sample_buffer) != NUM_TIMESTEPS:
-        print(f"  Warning: only got {len(sample_buffer)} samples, expected {NUM_TIMESTEPS}. Discarding.")
+    if len(sample_buffer) != NUM_TIMESTEPS*6:
+        print(f"  Warning: only got {len(sample_buffer)} points, expected {NUM_TIMESTEPS*6}. Discarding.")
         return -1
     else:
         return 1
