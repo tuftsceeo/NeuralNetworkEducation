@@ -4,8 +4,9 @@ Before, we defined our class like this:
 ```python
 import torch.nn as nn
 class WallStopNetwork(nn.Module):
-    super.__init__()
-    layer1 = nn.Linear(1, 1)
+    def __init__(self):
+        super().__init__()
+        layer1 = nn.Linear(1, 1)
 ```
 
 This was how we established the structure of our network. Now we want to tell PyTorch how it should use this layer when we want to feed an input through the network.
@@ -14,8 +15,9 @@ Because this layer is just shorthand for the function y = Wx + b, we just want t
 ```python
 import torch.nn as nn
 class WallStopNetwork(nn.Module):
-    super.__init__()
-    layer1 = nn.Linear(1, 1)
+    def __init__(self):
+        super().__init__()
+        layer1 = nn.Linear(1, 1)
 
     def forwards(self, x):
         return self.layer1(x)

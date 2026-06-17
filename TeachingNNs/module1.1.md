@@ -23,7 +23,7 @@ If each layer of a neural network is a linear equation in the form of y = Wx + b
 import torch.nn as nn
 layer = nn.Linear(num_inputs, num_outputs)
 ```
-With this in mind, try writing a WallStopNetwork class that has your desired number of layers as parameters, each having the correct inputs and outputs. We also want to make sure we tell PyTorch that this class is a neural network, so make your class extend nn.Module and use nn.Module's constructor. Then compare your solution to the one below.
+With this in mind, try writing a WallStopNetwork class that has your desired number of layers as parameters, each having the correct inputs and outputs. These things shold be set up within the class's constructor. We also want to make sure we tell PyTorch that this class is a neural network, so make your class extend nn.Module and use nn.Module's constructor within your constructor. Then compare your solution to the one below.
 
 <details>
 <summary>Continue</summary>
@@ -32,8 +32,9 @@ We can write this class as so:
 ```python
 import torch.nn as nn
 class WallStopNetwork(nn.Module):
-    super.__init__()
-    layer1 = nn.Linear(1, 1)
+    def __init__(self):
+        super().__init__()
+        layer1 = nn.Linear(1, 1)
 ```
 </details>
 </details>

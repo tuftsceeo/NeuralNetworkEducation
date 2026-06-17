@@ -1,0 +1,2 @@
+# Learning Rate
+We defined learning rate as how fast the optimizer changes to model to adapt to the data. Play around with this to see how the learning rate changes how the model trains. What are the pros and cons of big and small learning rates?

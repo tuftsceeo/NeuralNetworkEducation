@@ -8,14 +8,15 @@ nn.Linear(inputs, output) # --> this is a shorthand for y = Wx + b, where y is t
 
 # Now, lets start with establishing the shape of a simple neural net. How many inputs and how many outputs?
 class myNeuralNet(nn.Module): # Our model is a class, and that class is a subclass of the torch "Module"
-    super.__init__() # we want it to do all the setup that the broad "Module" class does
-    main_layer = nn.Linear(1, 1) # takes in 1 input, returns 1 output
+    def __init__(self) # we want it to do all the setup that the broad "Module" class does
+        super().__init__()
+        self.main_layer = nn.Linear(1, 1) # takes in 1 input, returns 1 output
 
-# Now that we have made our NN, let's define what a forward pass looks like. 
-# main_layer is a function, so we want to simply give that layer our input, and get the output
-def forward(self, input):
-    output = self.main_layer(input)
-    return output
+    # Now that we have made our NN, let's define what a forward pass looks like. 
+    # main_layer is a function, so we want to simply give that layer our input, and get the output
+    def forward(self, input):
+        output = self.main_layer(input)
+        return output
 
 # Now we need to train our model.
 # Our model needs examples of what inputs produce what outputs so it knows what it is supposed to do.
@@ -35,7 +36,7 @@ def train(model, sample_inputs, sample_outputs):
     # It takes in the data, compares it's output to the correct output, then tweaks the values in its layers, and tries again to see if it got closer
 
     # First, lets define the tool that helps us decide the "loss" (how far off our answer was from the actual answer)
-    criterion = nn.CrossEntropyLoss() # criterion is a function that we can use as a shorthand for cross entropy loss (an equation that calculates loss)
+    criterion = nn.MSELoss() # criterion is a function that we can use as a shorthand for cross entropy loss (an equation that calculates loss)
 
     # Now, lets define the tool that helps us figure out how to tweak the values in the layer based on that loss
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001) 
