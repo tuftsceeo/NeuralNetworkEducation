@@ -96,10 +96,7 @@ def predict(x1, x2):
 while True:
     go = predict(c.sensor.leftPercent, c.sensor.rightPercent)
     if go == 1:
-        print("going")
         m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, speed=10, motor = le.MOTOR_LEFT)
         m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, speed=10, motor = le.MOTOR_RIGHT)
     else:
-        print("stopping")
         m.motor_stop(motor=le.MOTOR_BOTH)
-    time.sleep(0.5)

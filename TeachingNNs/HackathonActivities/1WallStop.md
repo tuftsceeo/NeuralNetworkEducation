@@ -13,6 +13,25 @@ Feel free to look at the tips, and when you are done, continue to modeling the e
 
 </details>
 
+<details>
+<summary>Example Code Solution</summary>
+
+```python
+c = le.ColorSensor()
+c.connect()
+
+m = le.DoubleMotor()
+m.connect()
+
+curr = 0
+while True:
+    curr = 0.1 * (100 - c.sensor.reflection)
+    m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, speed=curr, motor = le.MOTOR_LEFT)
+    m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, speed=curr, motor = le.MOTOR_RIGHT)
+```
+
+</details>
+
 ## Modeling the Equation
 <details>
 <summary>Read modeling instructions</summary>
