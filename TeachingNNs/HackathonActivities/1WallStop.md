@@ -9,7 +9,6 @@ Feel free to look at the tips, and when you are done, continue to modeling the e
 <summary>Read tips</summary>
 
 - Try using the color sensor's reflection value. What should your relationship be between the speed of the car and the relfection value of the color sensor?
-- Think of your edge cases: when the reflection is 0, what is your speed? When the reflection is 100, what is your speed?
 - Is your speed too fast or too slow? How can you scale it?
 
 </details>
