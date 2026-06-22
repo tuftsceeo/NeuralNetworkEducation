@@ -8,9 +8,11 @@ Build your car now to be controlled by the joystick using an OR gate:
 
 Use these function to determine if your joysticks are active, and use them as the inputs to your network:
 ```python
+# Usage: is_active_left(c)
 def is_active_left(controller):
     return controller.sensor.leftPercent > 5 or controller.sensor.leftPercent < -5
 
+#Usage: is_active_right(c)
 def is_active_right(controller):
     return controller.sensor.rightPercent > 5 or controller.sensor.rightPercent < -5
 ```
@@ -50,11 +52,14 @@ Then, you can use your diagram to write your code as an equation rather than usi
 <summary>Example Code Solution</summary>
 
 ```python
-c = le.Controller()
-m = le.DoubleMotor()
+import lelib
+from lelib import controller, doubleMotor
+import time
+c = controller()
+dm = doubleMotor()
 
-c.connect()
-m.connect()
+c.connect(card_serial="1131")
+dm.connect(card_serial="1131")
 
 def is_active_left(controller):
     return controller.sensor.leftPercent > 5 or controller.sensor.leftPercent < -5
@@ -78,11 +83,10 @@ while True:
     go = predict(int(is_active_left(c)), int(is_active_right(c)))
     if go == 1:
         print("going")
-        m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, speed=10, motor = le.MOTOR_LEFT)
-        m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, speed=10, motor = le.MOTOR_RIGHT)
+        dm.run()
     else:
         print("stopping")
-        m.motor_stop(motor=le.MOTOR_BOTH)
+        dm.stop()
     time.sleep(0.5)
 ```
 

@@ -37,39 +37,35 @@ def update(x, action, target, lr=0.1):
 def get_reward(sensorL, sensorR):
     # maybe change this, for now I am just saying that the reward is inversely proportional to the sum of the sensor readings
     # ie, reward when the sensors see dark (are on the line)
-    return (200 - sensorL + sensorR)
+    return (200 - (sensorL + sensorR))
 
 def move(dm, action):
     if action == 0:
-        print("left")
-        turn_left(dm, 10)
+        #print("left")
+        turn_left(dm, 5)
     elif action == 1:
-        print("right")
-        turn_right(dm, 10)
+        #print("right")
+        turn_right(dm, 5)
     else:
-        print("forwards")
-        dm.movement_turn_for_degrees(degrees=90, direction=le.MOVEMENT_TURN_DIRECTION_RIGHT, speed=10)
-        time.sleep(0.5)
-
-def turn_left(dm, degrees):
-    dm.imu_reset_yaw_axis(0)
-    dm.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, motor=le.MOTOR_RIGHT, speed=10)
-    dm.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, motor=le.MOTOR_LEFT, speed=10)
-    while dm.imu_device.yaw > -degrees:
-        time.sleep(0.1)
-    dm.motor_stop()
+        #print("forwards")
+        forwards(dm)
 
 def turn_right(dm, degrees):
-    dm.imu_reset_yaw_axis(0)
+    dm.movement_turn_for_degrees(degrees=degrees, direction=le.MOVEMENT_TURN_DIRECTION_RIGHT, speed=10)
+    time.sleep(0.5)
+
+def turn_left(dm, degrees):
+    dm.movement_turn_for_degrees(degrees=degrees, direction=le.MOVEMENT_TURN_DIRECTION_LEFT, speed=10)
+    time.sleep(0.5)
+
+def forwards(dm):
+    dm.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, motor=le.MOTOR_RIGHT, speed=10)
     dm.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, motor=le.MOTOR_LEFT, speed=10)
-    dm.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, motor=le.MOTOR_RIGHT, speed=10)
-    while dm.imu_device.yaw < 360-degrees:
-        time.sleep(0.1)
-    dm.motor_stop()
+    time.sleep(0.25)
 
 # --- Training loop ---
 # start the exploration high because we know nothing
-exploration_rate = 1.0 
+exploration_rate = 0.5 
 
 # will have left and right sensor readings
 state = []
@@ -82,7 +78,9 @@ dm.connect(card_serial="1128", card_color=le.LEGO_COLOR_PURPLE)
 cL.connect(card_serial="1128", card_color=le.LEGO_COLOR_PURPLE)
 cR.connect(card_serial="1131")
 
+i = 0
 while True:
+    
     # Get current state
     state = [cL.sensor.reflection, cR.sensor.reflection]
 
@@ -93,8 +91,10 @@ while True:
     # higher exploration_rates mean we are more likely to take the exploration path (more numbers are less than it)
     if random.random() < exploration_rate:
         # explore --> choose randomly 
+        print("explored")
         action = random.randint(0, 2)
     else:
+        print("exploited")
         # exploit --> just take the known good action calculated by Q
         action = q.index(max(q))
     
@@ -103,7 +103,8 @@ while True:
 
     # calculate what the reward was from that action
     reward = get_reward(cL.sensor.reflection, cR.sensor.reflection)
-
+    #print("reward was: " + str(reward))
+    
     # Our target is just the immediate reward, 
     target = reward
 
@@ -112,3 +113,8 @@ while True:
 
     # Decay exploration_rate: explore less over time
     exploration_rate = max(0.01, exploration_rate * 0.99)
+
+    if (i % 10 == 0):
+        print(str(W))
+
+    i += 1

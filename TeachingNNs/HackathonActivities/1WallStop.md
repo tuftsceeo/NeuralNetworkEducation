@@ -17,17 +17,19 @@ Feel free to look at the tips, and when you are done, continue to modeling the e
 <summary>Example Code Solution</summary>
 
 ```python
-c = le.ColorSensor()
-c.connect()
+import lelib
+from lelib import colorSensor, doubleMotor
+cs = colorSensor()
+cs.connect()
 
-m = le.DoubleMotor()
-m.connect()
+dm = doubleMotor()
+dm.connect()
 
-curr = 0
+curr_speed = 0
 while True:
-    curr = 0.1 * (100 - c.sensor.reflection)
-    m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, speed=curr, motor = le.MOTOR_LEFT)
-    m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, speed=curr, motor = le.MOTOR_RIGHT)
+    curr_speed = 0.1 * (100 - c.sensor.reflection)
+    dm.set_speed(curr_speed)
+    dm.run()
 ```
 
 </details>

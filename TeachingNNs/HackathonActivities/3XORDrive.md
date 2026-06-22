@@ -34,11 +34,14 @@ Again, try drawing your diagram before diving into the coding, and think about h
 <summary>Example Code Solution</summary>
 
 ```python
-c = le.Controller()
-m = le.DoubleMotor()
-c.connect()
-m.connect()
+import lelib
+from lelib import controller, doubleMotor
+import time
+c = controller()
+dm = doubleMotor()
 
+c.connect(card_serial="1131")
+dm.connect(card_serial="1131")
 def is_active_left(controller):
     return controller.sensor.leftPercent > 5 or controller.sensor.leftPercent < -5
 
@@ -75,10 +78,11 @@ def predict(x1, x2):
 while True:
     go = predict(int(is_active_left(c)), int(is_active_right(c)))
     if go == 1:
-        m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_CLOCKWISE, speed=10, motor = le.MOTOR_LEFT)
-        m.motor_run(direction=le.MOTOR_MOVE_DIRECTION_COUNTERCLOCKWISE, speed=10, motor = le.MOTOR_RIGHT)
+        print("going")
+        dm.run()
     else:
-        m.motor_stop(motor=le.MOTOR_BOTH)
+        print("stopping")
+        dm.stop()
 ```
 
 </details>
