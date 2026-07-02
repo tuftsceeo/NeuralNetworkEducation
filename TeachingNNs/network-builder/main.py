@@ -24,13 +24,16 @@ devices: list[Element] = []
 is_running       = False
 all_plots: dict[str, object] = {}
 
+debug_mode      = False
+input_values: dict[int, float]  = {}   # rid -> raw input reading
+eq_values: dict[int, float]     = {}   # rid -> pre-activation (weighted sum + bias)
+output_values: dict[int, float] = {}   # rid -> post-activation value
+
 ACTIVATION_OPTIONS = [
     ("None",     ""),
     ("ReLU",     "relu"),
     ("Sigmoid",  "sigmoid"),
     ("Tanh",     "tanh"),
-    ("Linear",   "linear"),
-    ("Step",     "step"),
     ("Softplus", "softplus"),
     ("Custom",   "custom"),
 ]
@@ -88,11 +91,36 @@ def apply_custom_activation(x: float) -> float:
         return safe_eval_expr(custom_activation["expr"], x)
     for p in pieces:
         lo, hi = parse_bound(p["lo"]), parse_bound(p["hi"])
-        lo_ok = True if lo is None else (x > lo if p["lo_op"] == "<" else x >= lo)
-        hi_ok = True if hi is None else (x < hi if p["hi_op"] == "<" else x <= hi)
+
+        if lo is None:
+            lo_ok = True
+        elif p["lo_op"] == "<":
+            lo_ok = lo < x
+        elif p["lo_op"] == "<=":
+            lo_ok = lo <= x
+        elif p["lo_op"] == ">":
+            lo_ok = lo > x
+        elif p["lo_op"] == ">=":
+            lo_ok = lo >= x
+        else:
+            lo_ok = True
+
+        if hi is None:
+            hi_ok = True
+        elif p["hi_op"] == "<":
+            hi_ok = x < hi
+        elif p["hi_op"] == "<=":
+            hi_ok = x <= hi
+        elif p["hi_op"] == ">":
+            hi_ok = x > hi
+        elif p["hi_op"] == ">=":
+            hi_ok = x >= hi
+        else:
+            hi_ok = True
+
         if lo_ok and hi_ok:
             return safe_eval_expr(p["expr"], x)
-    return 0.0  # no piece matched — fall back rather than crash the loop
+    return 0.0
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def apply_activation(x: float, fn: str) -> float:
@@ -102,10 +130,6 @@ def apply_activation(x: float, fn: str) -> float:
         return 1.0 / (1.0 + math.exp(-x))
     elif fn == "tanh":
         return math.tanh(x)
-    elif fn == "linear":
-        return x
-    elif fn == "step":
-        return 1.0 if x >= 0 else 0.0
     elif fn == "softplus":
         return math.log(1.0 + math.exp(x))
     elif fn == "custom":
@@ -193,11 +217,48 @@ def arrowhead(svg_el, x2: float, y2: float, dx: float, dy: float,
     d = f"M{x2:.2f},{y2:.2f} L{ax1:.2f},{ay1:.2f} M{x2:.2f},{y2:.2f} L{ax2:.2f},{ay2:.2f}"
     svg_el.appendChild(svg_path(d, stroke_w))
 
-def straight_arrow(svg_el, x1, y1, x2, y2, stroke_w: float = 2.0):
-    """Straight line with arrowhead."""
+def debug_label(svg_el, x: float, y: float, value: float):
+    text = f"{value:.2f}"
+    char_w, pad_x, h = 6.2, 6, 18
+    w = len(text) * char_w + pad_x * 2
+
+    rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+    rect.setAttribute("x", str(x - w / 2))
+    rect.setAttribute("y", str(y - h / 2))
+    rect.setAttribute("width", str(w))
+    rect.setAttribute("height", str(h))
+    rect.setAttribute("rx", "5")
+    rect.setAttribute("fill", "#1a1d2e")
+    rect.setAttribute("stroke", "#ffffff")
+    rect.setAttribute("stroke-width", "1")
+
+    txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
+    txt.setAttribute("x", str(x))
+    txt.setAttribute("y", str(y + 3.5))
+    txt.setAttribute("text-anchor", "middle")
+    txt.setAttribute("font-family", "JetBrains Mono, monospace")
+    txt.setAttribute("font-size", "10")
+    txt.setAttribute("font-weight", "700")
+    txt.setAttribute("fill", "#ffffff")
+    txt.textContent = text
+
+    svg_el.appendChild(rect)
+    svg_el.appendChild(txt)
+
+
+def straight_arrow(svg_el, x1, y1, x2, y2, stroke_w: float = 2.0, debug_value=None):
+    """Straight line with arrowhead, optionally labeled with a live value."""
     d = f"M{x1:.2f},{y1:.2f} L{x2:.2f},{y2:.2f}"
     svg_el.appendChild(svg_path(d, stroke_w))
     arrowhead(svg_el, x2, y2, x2 - x1, y2 - y1, stroke_w)
+
+    if debug_mode and debug_value is not None:
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        dx, dy = x2 - x1, y2 - y1
+        length = math.sqrt(dx * dx + dy * dy) or 1.0
+        # perpendicular offset so the label sits beside/above the line, not on top of it
+        px, py = -dy / length, dx / length
+        debug_label(svg_el, mx + px * 11, my + py * 11, debug_value)
 
 # ── Main redraw ────────────────────────────────────────────────────────────────
 
@@ -276,19 +337,22 @@ def redraw_arrows():
 
             same = i_rid == e_rid
             straight_arrow(svg_el, ix, tail_y, ex, head_y,
-                           stroke_w=2.2 if same else 1.8)
+                           stroke_w=2.2 if same else 1.8,
+                           debug_value=input_values.get(i_rid))
 
     # ── 2. Equation → Activation: horizontal straight arrows ─────────────────
     if act_el and eq_r_pts:
         act_x = rel(act_el)["x"]
         for (ex, ey, e_rid) in eq_r_pts:
-            straight_arrow(svg_el, ex, ey, act_x, ey, stroke_w=2.0)
+            straight_arrow(svg_el, ex, ey, act_x, ey, stroke_w=2.0,
+                           debug_value=eq_values.get(e_rid))
 
     # ── 3. Activation → Output: horizontal straight arrows ───────────────────
     if act_el and out_pts:
         act_rx = rel(act_el)["x"] + rel(act_el)["w"]
         for (ox, oy, o_rid) in out_pts:
-            straight_arrow(svg_el, act_rx, oy, ox, oy, stroke_w=2.0)
+            straight_arrow(svg_el, act_rx, oy, ox, oy, stroke_w=2.0,
+                           debug_value=output_values.get(o_rid))
 
 # ── Row HTML ───────────────────────────────────────────────────────────────────
 
@@ -391,7 +455,7 @@ def make_piece_html(p: dict) -> str:
     pid = p["id"]
     def op_opts(current):
         out = ""
-        for val, sym in (("<", "&lt;"), ("<=", "&le;")):
+        for val, sym in (("<", "&lt;"), ("<=", "&le;"), (">", "&gt;"), (">=", "&ge;")):
             sel = "selected" if val == current else ""
             out += f'<option value="{val}" {sel}>{sym}</option>'
         return out
@@ -409,9 +473,9 @@ def make_piece_html(p: dict) -> str:
 """
 
 def render_custom_pieces():
-    list_el     = get_id("custom-pieces-list")
-    wrap_el     = get_id("custom-pieces-wrap")
-    default_el  = get_id("custom-default-expr")
+    list_el    = get_id("custom-pieces-list")
+    wrap_el    = get_id("custom-pieces-wrap")
+    default_el = get_id("custom-default-expr")
     if not list_el:
         return
     pieces = custom_activation["pieces"]
@@ -483,14 +547,12 @@ def bind_custom_box_events():
 def on_act_select_change(evt):
     val = evt.target.value
     box = get_id("custom-act-box")
-    act_box = get_id("act-box")
-    act_col = get_id("act-col")
     if not box:
         return
     is_custom = (val == "custom")
     box.classList.toggle("hidden", not is_custom)
-    act_box.classList.toggle("has-custom", is_custom)
-    act_col.classList.toggle("act-col-wide", is_custom)
+    get_id("act-box").classList.toggle("has-custom", is_custom)
+    get_id("act-col").classList.toggle("act-col-custom", is_custom)
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
 
 def sync_all_eq_fields():
@@ -701,9 +763,10 @@ def add_row(evt=None):
     row_counter += 1
     rid = row_counter
     n   = len(rows) + 1
+    name = chr((ord('x') - ord('a') + (n - 1)) % 26 + ord('a'))
     row = {
         "id":          rid,
-        "name":        f"x{n}",
+        "name":        name,
         "weights":     [1.0] * n ,
         "bias":        0.0,
         "input_data":  [],
@@ -864,6 +927,8 @@ def stop_network(evt=None):
 async def loop_network():
     while is_running:
         forward()
+        if debug_mode:
+            redraw_arrows()
         await asyncio.sleep(0.05)
 
 def forward():
@@ -879,15 +944,20 @@ def forward():
         except (KeyError, TypeError, ValueError):
             val = 0.0
         input_vals.append(val)
+        input_values[rid] = val          # NEW
 
     # 2. Compute each row's output
     act_fn = get_id("act-select").value
     for row in rows:
         rid = row["id"]
         weighted = sum(row["weights"][i] * input_vals[i] for i in range(len(input_vals)))
-        result = weighted + row["bias"]
-        result = apply_activation(result, act_fn)
-        result = int(result)
+        pre_act  = weighted + row["bias"]
+        eq_values[rid] = pre_act          # NEW
+
+        post_act = apply_activation(pre_act, act_fn)
+        output_values[rid] = post_act     # NEW
+
+        result = int(post_act)
         print("result is: " + str(result))
         run_output(get_id(f"chan-out-{rid}").value, get_id(f"dev-out-{rid}").value, result)
 
@@ -953,6 +1023,12 @@ def _on_act_help(evt):
 def _on_close_act_help(evt):
     close_act_help()
 
+@when("change", "#debug-toggle")
+def _on_debug_toggle(evt):
+    global debug_mode
+    debug_mode = evt.target.checked
+    redraw_arrows()
+
 # ── Boot ───────────────────────────────────────────────────────────────────────
 
 def boot():
@@ -966,7 +1042,5 @@ def boot():
     add_row()
     setup_resize_observer()
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 120)
-
-boot()
 
 boot()
