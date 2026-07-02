@@ -2,18 +2,27 @@
 Neural Network Builder — main.py
 PyScript 2026.3.1
 """
-
 import math
+import asyncio
 from pyscript import document, window, when
 from pyscript.ffi import create_proxy
 from Device import Element
+import legoeducation as le
+
+import traceback
+import threading
+import concurrent.futures
+
+from pyscript.js_modules import Plotly
+import plot
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
-rows: list[dict] = []
+rows: list[dict] = [] # row is a dict
 row_counter      = 0
-devices: list[str] = []
+devices: list[Element] = []
 is_running       = False
+all_plots: dict[str, object] = {}
 
 ACTIVATION_OPTIONS = [
     ("None",     ""),
@@ -23,19 +32,92 @@ ACTIVATION_OPTIONS = [
     ("Linear",   "linear"),
     ("Step",     "step"),
     ("Softplus", "softplus"),
-]
-
-CHANNELS = [
-    ("— channel —", ""),
-    ("Channel 1",   "ch1"),
-    ("Channel 2",   "ch2"),
-    ("Channel 3",   "ch3"),
-    ("Channel 4",   "ch4"),
+    ("Custom",   "custom"),
 ]
 
 ARROW_COLOR = "#1e40af"
 
+custom_activation = {"expr": "x", "pieces": []}
+piece_counter = 0
+
+CUSTOM_ACT_NAMES = {
+    "abs": abs, "max": max, "min": min, "round": round,
+    "sqrt": math.sqrt, "exp": math.exp, "log": math.log,
+    "log2": math.log2, "log10": math.log10,
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "pi": math.pi, "e": math.e, "inf": math.inf,
+}
+
+import re
+
+IMPLICIT_MULT_RE = re.compile(r'(?<=[0-9])(?=[a-zA-Z(])|(?<=[a-zA-Z)])(?=[0-9(])')
+
+def normalize_expr(expr: str) -> str:
+    cleaned = expr.replace("^", "**")
+    # insert * between number/letter/paren boundaries like "3x" -> "3*x", "2(x" -> "2*(x"
+    cleaned = IMPLICIT_MULT_RE.sub("*", cleaned)
+    return cleaned
+
+def safe_eval_expr(expr: str, x: float) -> float:
+    if not expr or not expr.strip():
+        return x
+    cleaned = normalize_expr(expr)
+    ns = dict(CUSTOM_ACT_NAMES)
+    ns["x"] = x
+    try:
+        return float(eval(cleaned, {"__builtins__": {}}, ns))
+    except Exception:
+        print("Custom activation eval error:\n" + traceback.format_exc())
+        return x
+
+def parse_bound(raw: str):
+    """Blank -> unbounded (None). Accepts 'inf', '-inf', '∞', '-∞', or a number."""
+    if raw is None:
+        return None
+    s = raw.strip().lower().replace("∞", "inf")
+    if s == "":
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+def apply_custom_activation(x: float) -> float:
+    pieces = custom_activation["pieces"]
+    if not pieces:
+        return safe_eval_expr(custom_activation["expr"], x)
+    for p in pieces:
+        lo, hi = parse_bound(p["lo"]), parse_bound(p["hi"])
+        lo_ok = True if lo is None else (x > lo if p["lo_op"] == "<" else x >= lo)
+        hi_ok = True if hi is None else (x < hi if p["hi_op"] == "<" else x <= hi)
+        if lo_ok and hi_ok:
+            return safe_eval_expr(p["expr"], x)
+    return 0.0  # no piece matched — fall back rather than crash the loop
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
+def apply_activation(x: float, fn: str) -> float:
+    if fn == "relu":
+        return max(0.0, x)
+    elif fn == "sigmoid":
+        return 1.0 / (1.0 + math.exp(-x))
+    elif fn == "tanh":
+        return math.tanh(x)
+    elif fn == "linear":
+        return x
+    elif fn == "step":
+        return 1.0 if x >= 0 else 0.0
+    elif fn == "softplus":
+        return math.log(1.0 + math.exp(x))
+    elif fn == "custom":
+        return apply_custom_activation(x)
+    else:
+        return x
+        
+def device_by_name(name: str) -> Element | None:
+    for d in devices:
+        if d.name == name:
+            return d
+    return None
 
 def get_id(id_: str):
     return document.getElementById(id_)
@@ -46,16 +128,33 @@ def row_by_id(rid: int) -> dict | None:
             return r
     return None
 
-def device_options_html() -> str:
-    opts = '<option value="">— device —</option>'
-    for name in devices:
-        opts += f'<option value="{name}">{name}</option>'
+def get_device_options_html() -> str:
+    opts = '<option class = "dev-dropdown" value="">— device —</option>'
+    for device in devices:
+        opts += f'<option value="{device.name}">{device.name}</option>'
     return opts
 
-def channel_options_html() -> str:
-    return "".join(
-        f'<option value="{v}">{label}</option>' for label, v in CHANNELS
-    )
+def get_in_channels_html(device: Element | None = None) -> str:
+    if device is None:
+        return '<option value="">— value —</option>'
+    try:
+        state = device.state  # dict parsed from JSON
+        return "".join(
+            f'<option value="{key}">{key}</option>' for key in state.keys()
+        )
+    except Exception:
+        return '<option value="">— value —</option>'
+
+def get_out_channels_html(device: Element | None = None) -> str:
+    if device is None:
+        return '<option value="">— value —</option>'
+    try:
+        opts = device.get_out_list()  # dict parsed from JSON
+        return "".join(
+            f'<option value="{opt}">{opt}</option>' for opt in opts
+        )
+    except Exception:
+        return '<option value="">— value —</option>'
 
 def populate_act_select():
     sel = get_id("act-select")
@@ -199,7 +298,7 @@ def make_left_row_html(row: dict) -> str:
 
     eq_parts = ""
     for i, r in enumerate(rows):
-        coeff_val = row["coeffs"][i] if i < len(row["coeffs"]) else 1.0
+        coeff_val = row["weights"][i] if i < len(row["weights"]) else 1.0
         if i > 0:
             eq_parts += '<span class="eq-op">+</span>'
         eq_parts += (
@@ -214,8 +313,7 @@ def make_left_row_html(row: dict) -> str:
         f' class="eq-bias-input" id="bias-{rid}" data-row="{rid}" />'
     )
 
-    dev_opts = device_options_html()
-    ch_opts  = channel_options_html()
+    dev_opts = get_device_options_html()
 
     return f"""
 <div class="neuron-row neuron-row-left" id="row-left-{rid}" data-row="{rid}">
@@ -232,10 +330,10 @@ def make_left_row_html(row: dict) -> str:
                 <span class="node-reading" id="reading-in-{rid}">—</span>
             </div>
             <div class="node-plot">
-                <canvas class="plot-canvas" id="canvas-in-{rid}" width="170" height="70"></canvas>
+                <div class="plot-canvas" id="plot-in-{rid}" width="170" height="70"></div>
             </div>
             <div class="plot-footer">
-                <select class="channel-select" id="chan-in-{rid}">{ch_opts}</select>
+                <select class="channel-select" id="chan-in-{rid}">— value —</select>
             </div>
         </div>
     </div>
@@ -255,8 +353,7 @@ def make_left_row_html(row: dict) -> str:
 
 def make_right_row_html(row: dict) -> str:
     rid      = row["id"]
-    dev_opts = device_options_html()
-    ch_opts  = channel_options_html()
+    dev_opts = get_device_options_html()
 
     return f"""
 <div class="neuron-row neuron-row-right" id="row-right-{rid}" data-row="{rid}">
@@ -268,10 +365,10 @@ def make_right_row_html(row: dict) -> str:
                 <span class="node-reading" id="reading-out-{rid}">—</span>
             </div>
             <div class="node-plot">
-                <canvas class="plot-canvas" id="canvas-out-{rid}" width="170" height="70"></canvas>
+                <div class="plot-canvas" id="plot-out-{rid}" width="170" height="70"></div>
             </div>
             <div class="plot-footer">
-                <select class="channel-select" id="chan-out-{rid}">{ch_opts}</select>
+                <select class="channel-select" id="chan-out-{rid}">— value —</select>
             </div>
         </div>
     </div>
@@ -290,17 +387,123 @@ def make_right_row_html(row: dict) -> str:
 
 # ── Equation field sync ────────────────────────────────────────────────────────
 
+def make_piece_html(p: dict) -> str:
+    pid = p["id"]
+    def op_opts(current):
+        out = ""
+        for val, sym in (("<", "&lt;"), ("<=", "&le;")):
+            sel = "selected" if val == current else ""
+            out += f'<option value="{val}" {sel}>{sym}</option>'
+        return out
+    return f"""
+<div class="custom-piece-row" data-piece="{pid}">
+    <input type="text" class="custom-eq-input small" id="piece-expr-{pid}" value="{p['expr']}" />
+    <span class="piece-if">if</span>
+    <input type="text" class="piece-num-input" id="piece-lo-{pid}" placeholder="-∞" value="{p['lo']}" />
+    <select class="piece-op-select" id="piece-lo-op-{pid}">{op_opts(p['lo_op'])}</select>
+    <span class="piece-x">x</span>
+    <select class="piece-op-select" id="piece-hi-op-{pid}">{op_opts(p['hi_op'])}</select>
+    <input type="text" class="piece-num-input" id="piece-hi-{pid}" placeholder="∞" value="{p['hi']}" />
+    <button class="btn-remove-piece" id="remove-piece-{pid}">×</button>
+</div>
+"""
+
+def render_custom_pieces():
+    list_el     = get_id("custom-pieces-list")
+    wrap_el     = get_id("custom-pieces-wrap")
+    default_el  = get_id("custom-default-expr")
+    if not list_el:
+        return
+    pieces = custom_activation["pieces"]
+    if pieces:
+        wrap_el.classList.remove("hidden")
+        default_el.classList.add("hidden")
+        list_el.innerHTML = "".join(make_piece_html(p) for p in pieces)
+        for p in pieces:
+            bind_piece_events(p["id"])
+    else:
+        wrap_el.classList.add("hidden")
+        default_el.classList.remove("hidden")
+    window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
+
+def find_piece(pid: int):
+    return next((p for p in custom_activation["pieces"] if p["id"] == pid), None)
+
+def bind_piece_events(pid: int):
+    def bind(elid, evname, key, is_select=False):
+        el = get_id(elid)
+        if not el:
+            return
+        def h(evt):
+            p = find_piece(pid)
+            if p:
+                p[key] = evt.target.value
+        el.addEventListener(evname, create_proxy(h))
+
+    bind(f"piece-expr-{pid}",   "input",  "expr")
+    bind(f"piece-lo-{pid}",     "input",  "lo")
+    bind(f"piece-hi-{pid}",     "input",  "hi")
+    bind(f"piece-lo-op-{pid}",  "change", "lo_op")
+    bind(f"piece-hi-op-{pid}",  "change", "hi_op")
+
+    rm = get_id(f"remove-piece-{pid}")
+    if rm:
+        def h(evt):
+            remove_piece(pid)
+        rm.addEventListener("click", create_proxy(h))
+
+def add_piece(evt=None):
+    global piece_counter
+    piece_counter += 1
+    seed_expr = "x"
+    if not custom_activation["pieces"]:
+        default_el = get_id("custom-default-expr")
+        seed_expr = default_el.value if default_el else custom_activation["expr"]
+    custom_activation["pieces"].append({
+        "id": piece_counter, "expr": seed_expr,
+        "lo": "", "lo_op": "<", "hi": "", "hi_op": "<",
+    })
+    render_custom_pieces()
+
+def remove_piece(pid: int):
+    custom_activation["pieces"] = [p for p in custom_activation["pieces"] if p["id"] != pid]
+    render_custom_pieces()
+
+def bind_custom_box_events():
+    default_el = get_id("custom-default-expr")
+    if default_el:
+        def h(evt):
+            custom_activation["expr"] = evt.target.value
+        default_el.addEventListener("input", create_proxy(h))
+
+    add_btn = get_id("add-piece-btn")
+    if add_btn:
+        add_btn.addEventListener("click", create_proxy(add_piece))
+
+def on_act_select_change(evt):
+    val = evt.target.value
+    box = get_id("custom-act-box")
+    act_box = get_id("act-box")
+    act_col = get_id("act-col")
+    if not box:
+        return
+    is_custom = (val == "custom")
+    box.classList.toggle("hidden", not is_custom)
+    act_box.classList.toggle("has-custom", is_custom)
+    act_col.classList.toggle("act-col-wide", is_custom)
+    window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
+
 def sync_all_eq_fields():
     for row in rows:
         rid       = row["id"]
         container = get_id(f"eq-inline-{rid}")
         if not container:
             continue
-        while len(row["coeffs"]) < len(rows):
-            row["coeffs"].append(1.0)
+        while len(row["weights"]) < len(rows):
+            row["weights"].append(1.0)
         html = ""
         for i, r in enumerate(rows):
-            coeff_val = row["coeffs"][i]
+            coeff_val = row["weights"][i]
             if i > 0:
                 html += '<span class="eq-op">+</span>'
             html += (
@@ -337,7 +540,7 @@ def bind_eq_inputs(rid: int):
             def make_ch(r, idx):
                 def h(evt):
                     try:
-                        r["coeffs"][idx] = float(evt.target.value)
+                        r["weights"][idx] = float(evt.target.value)
                     except (ValueError, TypeError):
                         pass
                 return create_proxy(h)
@@ -352,6 +555,55 @@ def bind_eq_inputs(rid: int):
                     pass
             return create_proxy(h)
         bias_inp.addEventListener("input", make_bh(row))
+
+def on_channel_dropdown_change(evt):
+    sel = evt.target
+    sel_id = sel.id
+    channel = sel.value
+
+    if sel_id.startswith("chan-in-"):
+        rid = int(sel_id[len("chan-in-"):])
+        dev_sel = get_id(f"dev-in-{rid}")
+        plot_id = f"plot-in-{rid}"
+    elif sel_id.startswith("chan-out-"):
+        rid = int(sel_id[len("chan-out-"):])
+        dev_sel = get_id(f"dev-out-{rid}")
+        plot_id = f"plot-out-{rid}"
+    else:
+        return
+
+    if not dev_sel:
+        return
+
+    dev_name = dev_sel.value
+    row = row_by_id(rid)
+    if not row:
+        return
+
+    plot_obj = all_plots.get(plot_id)
+
+    # Determine which prev keys to use based on side
+    prev_dev_key = "prev_in_device" if plot_id.startswith("plot-in-") else "prev_out_device"
+    prev_chan_key = "prev_in_channel" if plot_id.startswith("plot-in-") else "prev_out_channel"
+
+    # Remove from previous device
+    prev_dev_name = row.get(prev_dev_key)
+    if prev_dev_name:
+        prev_dev = device_by_name(prev_dev_name)
+        if prev_dev and plot_obj and plot_obj in prev_dev.plots:
+            idx = prev_dev.plots.index(plot_obj)
+            prev_dev.plots.pop(idx)
+            if idx < len(prev_dev.plot_vars):
+                prev_dev.plot_vars.pop(idx)
+
+    # Add to new device
+    new_dev = device_by_name(dev_name)
+    if new_dev and channel and plot_obj:
+        new_dev.plots.append(plot_obj)
+        new_dev.plot_vars.append(channel)
+
+    row[prev_dev_key] = dev_name
+    row[prev_chan_key] = channel
 
 def bind_row_events(rid: int):
     row = row_by_id(rid)
@@ -377,7 +629,71 @@ def bind_row_events(rid: int):
         del_btn.addEventListener("click", make_dh(row))
 
     bind_eq_inputs(rid)
+    
+    handler = create_proxy(on_device_dropdown_change)
+    for pfx in ("dev-in-", "dev-out-"):
+        sel = get_id(f"{pfx}{rid}")
+        if sel:
+            sel.addEventListener("change", handler)
 
+    chan_handler = create_proxy(on_channel_dropdown_change)
+    for chan_id in (f"chan-in-{rid}", f"chan-out-{rid}"):
+        chan_el = get_id(chan_id)
+        if chan_el:
+            chan_el.addEventListener("change", chan_handler)
+
+def on_device_dropdown_change(evt):
+    sel = evt.target
+    sel_id = sel.id
+    dev_name = sel.value
+
+    if sel_id.startswith("dev-in-"):
+        rid = int(sel_id[len("dev-in-"):])
+        chan_id = f"chan-in-{rid}"
+        plot_id = f"plot-in-{rid}"
+        prev_dev_key = "prev_in_device"
+        prev_chan_key = "prev_in_channel"
+    elif sel_id.startswith("dev-out-"):
+        rid = int(sel_id[len("dev-out-"):])
+        chan_id = f"chan-out-{rid}"
+        plot_id = f"plot-out-{rid}"
+        prev_dev_key = "prev_out_device"
+        prev_chan_key = "prev_out_channel"
+    else:
+        return
+
+    chan_sel = get_id(chan_id)
+    if not chan_sel:
+        return
+
+    matched = next((d for d in devices if d.name == dev_name), None)
+    chan_sel.innerHTML = get_in_channels_html(matched) if chan_id.startswith("chan-in") else get_out_channels_html(matched)
+
+    row = row_by_id(rid)
+    if not row:
+        return
+
+    plot_obj = all_plots.get(plot_id)
+
+    # Remove from previous device
+    prev_dev_name = row.get(prev_dev_key)
+    if prev_dev_name:
+        prev_dev = device_by_name(prev_dev_name)
+        if prev_dev and plot_obj and plot_obj in prev_dev.plots:
+            idx = prev_dev.plots.index(plot_obj)
+            prev_dev.plots.pop(idx)
+            if idx < len(prev_dev.plot_vars):
+                prev_dev.plot_vars.pop(idx)
+
+    # Add to new device using first channel as default
+    if matched and plot_obj:
+        first_channel = chan_sel.options.item(0).value if chan_sel.options.length > 0 else None
+        if first_channel:
+            matched.plots.append(plot_obj)
+            matched.plot_vars.append(first_channel)
+
+    row[prev_dev_key] = dev_name
+    row[prev_chan_key] = chan_sel.options.item(0).value if chan_sel.options.length > 0 else None
 # ── Row CRUD ───────────────────────────────────────────────────────────────────
 
 def add_row(evt=None):
@@ -388,7 +704,7 @@ def add_row(evt=None):
     row = {
         "id":          rid,
         "name":        f"x{n}",
-        "coeffs":      [1.0] * n,
+        "weights":     [1.0] * n ,
         "bias":        0.0,
         "input_data":  [],
         "output_data": [],
@@ -406,12 +722,19 @@ def add_row(evt=None):
     right_container.appendChild(rw.firstElementChild)
 
     bind_row_events(rid)
+
+    def make_plots(rid=rid):
+        all_plots[f"plot-in-{rid}"]  = plot.plot(f"plot-in-{rid}")
+        all_plots[f"plot-out-{rid}"] = plot.plot(f"plot-out-{rid}")
+    
+    window.setTimeout(create_proxy(make_plots), 60)
     sync_all_eq_fields()
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
 
 
 def delete_row(rid: int):
     global rows
+    remove_row_plots(rid)
 
     for suffix in ("left", "right"):
         el = get_id(f"row-{suffix}-{rid}")
@@ -425,19 +748,42 @@ def delete_row(rid: int):
     rows = [r for r in rows if r["id"] != rid]
 
     for r in rows:
-        if idx < len(r["coeffs"]):
-            r["coeffs"].pop(idx)
+        if idx < len(r["weights"]):
+            r["weights"].pop(idx)
 
     sync_all_eq_fields()
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
 
+def remove_row_plots(rid: int):
+    """Detach this row's plots from their devices' plots/plot_vars lists,
+    and drop them from all_plots since the row no longer exists."""
+    row = row_by_id(rid)
+    if not row:
+        return
+
+    for side in ("in", "out"):
+        plot_id = f"plot-{side}-{rid}"
+        plot_obj = all_plots.get(plot_id)
+        prev_dev_name = row.get(f"prev_{side}_device")
+
+        if prev_dev_name and plot_obj:
+            dev = device_by_name(prev_dev_name)
+            if dev and plot_obj in dev.plots:
+                idx = dev.plots.index(plot_obj)
+                dev.plots.pop(idx)
+                if idx < len(dev.plot_vars):
+                    dev.plot_vars.pop(idx)
+
+        all_plots.pop(plot_id, None)
+
 # ── Device management ──────────────────────────────────────────────────────────
 
-def add_device_chip(name: str):
+async def add_device_chip(dev: Element):
     """Insert a chip for `name` above the connect button."""
     dl  = get_id("device-list")
     btn = get_id("add-device-btn")
-
+    
+    name = dev.myble.device.name
     chip = document.createElement("div")
     chip.className = "device-row"
     chip.id = f"chip-{name}"
@@ -454,16 +800,17 @@ def add_device_chip(name: str):
 
     disc = chip.querySelector(".btn-disconnect")
 
-    def make_disc(dev_name):
-        def handler(evt):
-            devices.remove(dev_name)
-            chip_el = get_id(f"chip-{dev_name}")
+    async def make_disc(dev):
+        async def handler(evt):
+            chip_el = get_id(f"chip-{dev.myble.device.name}")
             if chip_el:
                 chip_el.remove()
+            await dev.disconnect()
+            devices.remove(dev)
             refresh_device_dropdowns()
         return create_proxy(handler)
 
-    disc.addEventListener("click", make_disc(name))
+    disc.addEventListener("click", await make_disc(dev))
 
     # Insert before the button so chips stack above it
     dl.insertBefore(chip, btn)
@@ -471,7 +818,7 @@ def add_device_chip(name: str):
 
 
 def refresh_device_dropdowns():
-    dev_opts = device_options_html()
+    dev_opts = get_device_options_html()
     for row in rows:
         rid = row["id"]
         for pfx in ("dev-in-", "dev-out-"):
@@ -481,13 +828,16 @@ def refresh_device_dropdowns():
                 sel.innerHTML = dev_opts
                 sel.value = cur
 
-
 async def create_new_device(evt=None):
-    test_dev = Element()
-    await test_dev.connect()
-    name = test_dev.name if hasattr(test_dev, "name") else f"Device {len(devices) + 1}"
-    devices.append(name)
-    add_device_chip(name)
+    new_dev = Element()
+    await new_dev.connect()
+    print("out of connect")
+    if not new_dev.hub or not new_dev.hub.connected:
+        return
+    devices.append(new_dev)
+    await add_device_chip(new_dev)
+    refresh_device_dropdowns()
+    
 
 # ── Play / Stop ────────────────────────────────────────────────────────────────
 
@@ -497,6 +847,7 @@ def play_network(evt=None):
     get_id("play-btn").setAttribute("disabled", "")
     get_id("stop-btn").removeAttribute("disabled")
     document.body.classList.add("running")
+    asyncio.ensure_future(loop_network())
 
 def stop_network(evt=None):
     global is_running
@@ -504,7 +855,59 @@ def stop_network(evt=None):
     get_id("stop-btn").setAttribute("disabled", "")
     get_id("play-btn").removeAttribute("disabled")
     document.body.classList.remove("running")
+    for device in devices:
+        try:
+            device.stop()
+        except Exception:
+            print("Caught: " + e)
 
+async def loop_network():
+    while is_running:
+        forward()
+        await asyncio.sleep(0.05)
+
+def forward():
+    # 1. Collect input values for every row
+    input_vals = []
+    for row in rows:
+        rid = row["id"]
+        dev_name = get_id(f"dev-in-{rid}").value
+        channel  = get_id(f"chan-in-{rid}").value
+        dev = device_by_name(dev_name)
+        try:
+            val = float(dev.state[channel]) if dev and channel else 0.0
+        except (KeyError, TypeError, ValueError):
+            val = 0.0
+        input_vals.append(val)
+
+    # 2. Compute each row's output
+    act_fn = get_id("act-select").value
+    for row in rows:
+        rid = row["id"]
+        weighted = sum(row["weights"][i] * input_vals[i] for i in range(len(input_vals)))
+        result = weighted + row["bias"]
+        result = apply_activation(result, act_fn)
+        result = int(result)
+        print("result is: " + str(result))
+        run_output(get_id(f"chan-out-{rid}").value, get_id(f"dev-out-{rid}").value, result)
+
+def run_output(variable, dev_name, value):
+    device = device_by_name(dev_name)
+    if value > 100:
+        value = 100
+    elif value < -100:
+        value = -100
+    if variable == "Speed":
+        device.set_speed(value)
+    elif variable == "LeftSpeed":
+        device.set_speedL(value)
+    elif variable == "RightSpeed":
+        device.set_speedR(value)
+    elif variable == "BothSpeed":
+        device.set_speed(value)
+    else:
+        print("Cannot set " + variable)
+    
 # ── Activation help popover ────────────────────────────────────────────────────
 
 def open_act_help(evt=None):
@@ -557,65 +960,13 @@ def boot():
     get_id("page-wrap").style.display = "flex"
 
     populate_act_select()
-    add_row()
+    get_id("act-select").addEventListener("change", create_proxy(on_act_select_change))
+    bind_custom_box_events()
 
+    add_row()
     setup_resize_observer()
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 120)
 
 boot()
 
-# ── WASM Worker patch ──────────────────────────────────────────────────────────
-
-import asyncio
-import legoeducation.background_worker as bw
-
-def wasm_start_thread(self):
-    self.loop = asyncio.get_event_loop()
-    self.loop_ready.set()
-    asyncio.ensure_future(_wasm_worker_loop(self))
-
-def wasm_put_request(self, request):
-    asyncio.ensure_future(self.async_put_request(request))
-
-bw.Worker.start_thread = wasm_start_thread
-bw.Worker.put_request  = wasm_put_request
-
-async def _wasm_worker_loop(worker):
-    worker._myble_registry = {}
-
-    while True:
-        try:
-            req = await worker.request_queue.get()
-            if req is None:
-                break
-
-            topic = req.get("topic")
-
-            if topic == "send":
-                device  = req.get("msg")
-                message = req.get("msg2")
-                myble   = worker._myble_registry.get(id(device))
-                if myble is not None and message is not None:
-                    try:
-                        await myble.send(list(message))
-                    except Exception as e:
-                        print(f"BLE send error: {e}")
-
-            elif topic == "connect":
-                connect_callback = req.get("msg3")
-                if connect_callback:
-                    connect_callback(True)
-
-            elif topic == "disconnect":
-                device = req.get("msg")
-                myble  = worker._myble_registry.pop(id(device), None)
-                if myble is not None:
-                    myble.disconnect()
-
-            elif topic == "scan":
-                callback = req.get("msg2")
-                if callback:
-                    callback([])
-
-        except Exception as e:
-            print(f"Worker loop error: {e}")
+boot()

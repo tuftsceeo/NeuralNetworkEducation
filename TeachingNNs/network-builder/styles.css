@@ -190,10 +190,11 @@ html, body {
     width: 20px; height: 20px;
     border-radius: 99px;
     background: var(--red); 
-    border: 2px solid #991b1b;
+    border: 2px solid #9c1c1c;
     color: #fff;
     cursor: pointer;
     flex-shrink: 0;
+    
     transition: background 0.15s, transform 0.1s;
 }
 .btn-disconnect:hover  { background: #991b1b; transform: scale(1.08); }
@@ -625,6 +626,170 @@ html, body {
 }
 .act-help-name { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--purple); }
 .act-help-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+.hidden { display: none !important; }
+
+.act-col.act-col-wide {
+    width: auto;
+    min-width: 320px;
+}
+
+.act-box.has-custom {
+    width: auto;
+    min-width: 300px;
+    align-items: stretch;
+}
+
+.custom-act-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.custom-eq-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+}
+.custom-fx-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--purple);
+}
+.custom-eq-input {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    border: 1.5px solid var(--purple-mid);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 5px 8px;
+    text-align: center;
+}
+.custom-eq-input:focus { outline: none; border-color: var(--purple); }
+.custom-eq-input.small { width: 64px; flex: 0 0 auto; }
+
+.custom-pieces-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+}
+.custom-brace {
+    font-size: 38px;
+    line-height: 1;
+    color: var(--purple);
+    font-weight: 300;
+    display: flex;
+    align-items: center;
+    padding-right: 2px;
+    user-select: none;
+}
+.custom-pieces-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.custom-piece-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1.5px solid var(--purple-mid);
+    border-radius: 8px;
+    padding: 5px 6px;
+    flex-wrap: wrap;
+}
+.piece-if {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-style: italic;
+}
+.piece-x {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.piece-num-input {
+    width: 30px;
+    background: var(--purple-light);
+    border: 1.5px solid var(--purple-mid);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-align: center;
+    padding: 4px 2px;
+}
+.piece-num-input:focus { outline: none; border-color: var(--purple); }
+.piece-op-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--purple-light);
+    border: 1.5px solid var(--purple-mid);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--purple);
+    padding: 3px 4px;
+    cursor: pointer;
+}
+.btn-remove-piece {
+    margin-left: auto;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: none;
+    background: var(--red-light);
+    color: var(--red);
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.btn-remove-piece:hover { background: #fecaca; }
+
+.btn-add-piece {
+    align-self: center;
+    background: var(--purple-light);
+    border: 1.5px solid var(--purple-mid);
+    color: var(--purple);
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 14px;
+    cursor: pointer;
+}
+.btn-add-piece:hover { background: #ddd6fe; }
+
+.custom-main-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+}
+
+.custom-fx-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--purple);
+    padding-top: 5px;   /* vertically aligns with first piece row */
+    flex-shrink: 0;
+}
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 960px) {

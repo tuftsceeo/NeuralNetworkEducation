@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <py-config src="./pyscript.toml"></py-config>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 <body>
-
     <!-- Loading splash -->
     <div id="loading-splash" class="loading-splash">
         <div class="loading-orb"></div>
@@ -53,6 +53,23 @@
                         <div class="act-box-label">Activation</div>
                         <select class="act-select" id="act-select"></select>
                         <button class="act-help-btn" id="act-help-btn" title="What is an activation function?">?</button>
+                    
+                        <div class="custom-act-box hidden" id="custom-act-box">
+                            <div class="custom-main-row">
+                                <span class="custom-fx-label">f(x) =</span>
+                        
+                                <!-- simple mode: single expression input -->
+                                <input type="text" class="custom-eq-input" id="custom-default-expr" value="x" />
+                        
+                                <!-- piecewise mode: brace + stacked pieces -->
+                                <div class="custom-pieces-wrap hidden" id="custom-pieces-wrap">
+                                    <div class="custom-brace">{</div>
+                                    <div class="custom-pieces-list" id="custom-pieces-list"></div>
+                                </div>
+                            </div>
+                        
+                            <button class="btn-add-piece" id="add-piece-btn">+ Add piece</button>
+                        </div>
                     </div>
                 </div>
 
