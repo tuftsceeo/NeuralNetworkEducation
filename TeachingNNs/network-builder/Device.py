@@ -79,6 +79,15 @@ _DEVICE_MAP = {
     "Controller":   le.Controller,
 }
 
+def _dedupe_name(base_name: str, existing_names: list[str]) -> str:
+    """Append ' (1)', ' (2)', etc. if base_name is already in use."""
+    if base_name not in existing_names:
+        return base_name
+    i = 1
+    while f"{base_name} ({i})" in existing_names:
+        i += 1
+    return f"{base_name} ({i})"
+
 NOTIFY_UUID = '0000fd02-0002-1000-8000-00805f9b34fb'
 
 class Element:
@@ -92,8 +101,13 @@ class Element:
         self.out_list = []
         self.list_done = False
         self.state = None
+        self.hardware_state = {"LightColor": le.LEGO_COLOR_WHITE, 
+                               "LightPattern": le.LIGHT_PATTERN_BREATHE, 
+                               "LightIntensity": 100, 
+                               "BeepPattern": le.SOUND_PATTERN_BEEP_SINGLE, 
+                               "BeepFrequency": 1,}
 
-    async def connect(self):
+    async def connect(self, existing_names: list[str] | None = None):
         print("Scanning...")
         try:
             await self.myble.scan()
@@ -102,12 +116,13 @@ class Element:
             return
 
         raw_name = self.myble.name
+        
         if not raw_name:
             print("No device selected.")
             return
 
-        self.name = str(raw_name)
-        print(f"Selected: {self.name}")
+        base_name = str(raw_name)
+        self.name = _dedupe_name(base_name, existing_names)
 
         hub_cls = None
         for key, cls in _DEVICE_MAP.items():
@@ -192,8 +207,8 @@ class Element:
     def build_state(self):
         if "Double Motor" in self.name:
             self.state = {
-                "LeftPosition": None, "LeftSpeed": None, "LeftPower": None, "LeftAngle": None,
-                "RightPosition": None, "RightSpeed": None, "RightPower": None, "RightAngle": None,
+                "LeftPosition": None, "RightPosition": None, "LeftAngle": None, "RightAngle": None,
+                "LeftSpeed": None, "RightSpeed": None, "RightPower": None, "LeftPower": None,
                 "Yaw": None, "Pitch": None, "Roll": None,
                 "AccelerationX": None, "AccelerationY": None, "AccelerationZ": None,
                 "GyroX": None, "GyroY": None, "GyroZ": None,
@@ -204,8 +219,8 @@ class Element:
             }
         elif "Controller" in self.name:
             self.state = {
-                "LeftPercent": None, "LeftAngle": None, 
-                "RightPercent": None, "RightAngle": None,
+                "LeftPercent": None, "RightPercent": None, 
+                "LeftAngle": None, "RightAngle": None,
             }
         else:
             self.state = {
@@ -216,9 +231,13 @@ class Element:
 
     def get_out_list(self):
         if "Double Motor" in self.name:
-            return ["LeftSpeed", "RightSpeed", "BothSpeed"]
+            return ["LeftSpeed", "RightSpeed", "BothSpeed", "LightIntensity", "BeepFrequency"]
         elif "Single Motor" in self.name:
-            return ["Speed"]
+            return ["Speed", "LightIntensity", "BeepFrequency"]
+        elif "Color Sensor" in self.name:
+            return ["LightIntensity", "BeepFrequency"] #["LightColor", "LightPattern", "LightIntensity", "BeepPattern", "BeepFrequency"]
+        elif "Controller" in self.name:
+            return ["LightIntensity", "BeepFrequency"] #["LightColor", "LightPattern", "LightIntensity", "BeepPattern", "BeepFrequency"]
 
     def notif_callback(self, data):                    
         parsed_items = le.device_notification_parser(data)
@@ -241,9 +260,9 @@ class Element:
                 self.state["Yaw"] = parsed_item.yaw
                 self.state["Pitch"] = parsed_item.pitch
                 self.state["Roll"] = parsed_item.roll
-                self.state["AccelorationX"] = parsed_item.accelerometerX
-                self.state["AccelorationY"] = parsed_item.accelerometerY
-                self.state["AccelorationZ"] = parsed_item.accelerometerZ
+                self.state["AccelerationX"] = parsed_item.accelerometerX
+                self.state["AccelerationY"] = parsed_item.accelerometerY
+                self.state["AccelerationZ"] = parsed_item.accelerometerZ
                 self.state["GyroX"] = parsed_item.gyroscopeX
                 self.state["GyroY"] = parsed_item.gyroscopeX
                 self.state["GyroZ"] = parsed_item.gyroscopeX
@@ -268,7 +287,12 @@ class Element:
         for graph, var in zip(self.plots, self.plot_vars):
             val = 0
             if var == "BothSpeed":
-                val = (self.state["LeftSpeed"] + self.state["RightSpeed"])/2
+                val = (self.state["LeftSpeed"] - self.state["RightSpeed"])/2
+            elif var in self.hardware_state:
+                try:
+                    val = self.hardware_state[var]
+                except Exception as e:
+                    print("Cannot plot. Error: " + e)
             else: 
                 val = self.state[var]
             update = graph.addPoints(1, [val])
@@ -299,11 +323,23 @@ class Element:
             print("cant set speedL for " + self.name)
         
     def stop(self):
-        try:
+        if "Single Motor" in self.name:
             self.hub.motor_stop()
-        except Exception as e:
-            print("Caught" + e)
-            return
+        elif "Double Motor" in self.name:
+            self.hub.motor_stop(motor=le.MOTOR_BOTH)
+        else:
+            print("Cant stop " + self.name)
+
+    def set_light(self, variable, value):
+        self.hardware_state[variable] = value
+        self.hub.light_color(self.hardware_state["LightColor"], intensity=self.hardware_state["LightIntensity"], blocking=False) #removed pattern=self.hardware_state["LightPattern"],
+        
+    def set_beep(self, variable, value):
+        self.hardware_state[variable] = value
+        freq = self.hardware_state["BeepFrequency"] if self.hardware_state["BeepFrequency"] != 0 else 1 # dont want it to beep at 0
+        self.hub.beep(frequency=freq, blocking=False)
+        
+        
             
             
     

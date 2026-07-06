@@ -14,7 +14,7 @@
     --text-secondary: #5a5f7a;
     --text-muted:     #9ca3b8;
 
-    --blue:         #1e40af;   /* dark blue — all arrows */
+    --blue:         #1e40af;
     --blue-bright:  #3b6ff5;
     --blue-light:   #eef2fe;
     --blue-mid:     #b8cafc;
@@ -45,6 +45,12 @@
 
     --font-ui:   'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+
+    /* Network zoom level, overridden inline on #network-wrap by main.py.
+       --zoom scales spacing/box sizes across the whole range.
+       --text-zoom stays 1 until zoom drops below 50%, then also shrinks. */
+    --zoom: 1;
+    --text-zoom: 1;
 }
 
 html, body {
@@ -55,6 +61,10 @@ html, body {
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+}
+
+body {
+    padding: 20px;
 }
 
 /* ── Loading splash ────────────────────────────────────────────── */
@@ -77,9 +87,7 @@ html, body {
 
 /* ── Page layout ───────────────────────────────────────────────── */
 .page-wrap {
-    max-width: 1160px;
-    margin: 0 auto;
-    padding: 40px 24px 80px;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -95,9 +103,7 @@ html, body {
 /* ── Connection card ───────────────────────────────────────────── */
 .connect-card { padding: 22px 28px; }
 
-.connect-header {
-    margin-bottom: 16px;
-}
+.connect-header { margin-bottom: 16px; }
 .connect-title {
     font-size: 12px;
     font-weight: 700;
@@ -106,14 +112,8 @@ html, body {
     color: var(--text-muted);
 }
 
-/* Device list — vertical */
-.device-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+.device-list { display: flex; flex-direction: column; gap: 10px; }
 
-/* "Connect device" button shown when list is empty */
 .btn-add-device {
     display: inline-flex;
     align-items: center;
@@ -133,26 +133,6 @@ html, body {
 .btn-add-device:hover  { opacity: 0.88; }
 .btn-add-device:active { transform: scale(0.97); }
 
-/* "Add more" button shown inline when devices exist */
-.btn-add-device-sm {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 99px;
-    background: var(--blue-light);
-    border: 1.5px solid var(--blue-mid);
-    color: var(--blue-bright);
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    align-self: flex-start;
-}
-.btn-add-device-sm:hover  { background: #dbeafe; }
-.btn-add-device-sm:active { transform: scale(0.97); }
-
 .device-row {
     display: flex;
     align-items: center;
@@ -160,10 +140,10 @@ html, body {
     padding: 7px 12px;
     background: #f8f9fc;
     border: 1.5px solid var(--blue-bright);
-    border-radius: 99px;        /* pill shape — same as connect button */
+    border-radius: 99px;
     animation: row-in 0.18s ease;
-    width: fit-content;         /* only as wide as content needs */
-    max-width: 240px;           /* ~15 chars + dot + button */
+    width: fit-content;
+    max-width: 240px;
 }
 .device-indicator {
     width: 8px; height: 8px;
@@ -189,12 +169,11 @@ html, body {
     display: flex; align-items: center; justify-content: center;
     width: 20px; height: 20px;
     border-radius: 99px;
-    background: var(--red); 
+    background: var(--red);
     border: 2px solid #9c1c1c;
     color: #fff;
     cursor: pointer;
     flex-shrink: 0;
-    
     transition: background 0.15s, transform 0.1s;
 }
 .btn-disconnect:hover  { background: #991b1b; transform: scale(1.08); }
@@ -203,17 +182,23 @@ html, body {
 /* ── Network card ──────────────────────────────────────────────── */
 .network-card { padding: 32px 28px 28px; overflow-x: auto; }
 
-/* ── Network layout ────────────────────────────────────────────── */
+/* Zoom controls, centered above the network diagram */
+.zoom-bar {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 18px;
+}
+
+/* ── Network layout: four columns ─────────────────────────────── */
 .network-wrap {
     position: relative;
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: flex-start;
     width: fit-content;
     min-width: 100%;
 }
 
-/* SVG overlay */
 #arrow-svg {
     position: absolute;
     top: 0; left: 0;
@@ -223,44 +208,81 @@ html, body {
     z-index: 1;
 }
 
-/* Left and right row columns: natural width, never flex-grow */
-.rows-col {
+.col {
     display: flex;
     flex-direction: column;
-    flex: 0 0 auto;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-/* Single shared activation column — stretches to full network height */
-.act-col {
-    flex-shrink: 0;
-    width: 120px;
-    align-self: stretch;
+.col-items {
     display: flex;
-    align-items: stretch;
-    /* These margins create the visual gap between eq nodes and act-col,
-       and between act-col and output nodes, matching cell-arrow-gap-out widths */
-    margin-left: 56px;
-    margin-right: 56px;
-    padding: 10px 0;
+    flex-direction: column;
+    gap: calc(28px * var(--zoom));
+}
+
+.col-inputs  { margin-right: calc(80px * var(--zoom)); }
+.col-neurons { margin-right: calc(56px * var(--zoom)); }
+.col-activation { margin-right: calc(56px * var(--zoom)); }
+.col-outputs { }
+
+/* The dynamic row of layer column-pairs (neuron col + activation col, repeated) */
+.layers-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+/* "Add layer" sits in its own column between the last activation block
+   and the outputs, vertically centered */
+.col-add-layer {
+    align-self: center;
+    margin-right: calc(56px * var(--zoom));
+}
+.btn-add-layer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 14px;
+    border-radius: 14px;
+    background: var(--purple-light);
+    border: 2px dashed var(--purple-mid);
+    color: var(--purple);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.btn-add-layer:hover  { background: #ddd6fe; border-color: var(--purple); }
+.btn-add-layer:active { transform: scale(0.96); }
+
+/* Activation column stretches to match the height of the tallest column */
+.col-activation {
+    align-self: stretch;
+    width: max(90px, calc(120px * var(--zoom)));
+    flex-shrink: 0;
+    padding: calc(10px * var(--zoom)) 0;
 }
 
 .act-box {
     background: var(--purple-light);
     border: 2px solid var(--purple-mid);
-    border-radius: 16px;
-    padding: 14px 10px 12px;
+    border-radius: calc(16px * var(--zoom));
+    padding: calc(14px * var(--zoom)) calc(10px * var(--zoom)) calc(12px * var(--zoom));
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: calc(10px * var(--zoom));
     width: 100%;
-    /* fills the full height of act-col */
-    align-self: stretch;
+    height: 100%;
 }
 
 .act-box-label {
-    font-size: 10px;
+    font-size: calc(10px * var(--text-zoom));
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -274,9 +296,9 @@ html, body {
     border-radius: 8px;
     color: var(--purple);
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: calc(12px * var(--text-zoom));
     font-weight: 700;
-    padding: 5px 8px;
+    padding: calc(5px * var(--zoom)) calc(8px * var(--zoom));
     cursor: pointer;
     text-align: center;
     transition: border-color 0.15s;
@@ -284,13 +306,14 @@ html, body {
 .act-select:focus { outline: none; border-color: var(--purple); }
 
 .act-help-btn {
-    width: 24px; height: 24px;
+    width: max(16px, calc(24px * var(--zoom)));
+    height: max(16px, calc(24px * var(--zoom)));
     border-radius: 50%;
     background: var(--purple);
     border: none;
     color: #fff;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: calc(12px * var(--text-zoom));
     font-weight: 700;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
@@ -300,20 +323,28 @@ html, body {
 .act-help-btn:hover  { opacity: 0.82; transform: scale(1.1); }
 .act-help-btn:active { transform: scale(0.95); }
 
-/* ── One neuron row ────────────────────────────────────────────── */
-.neuron-row {
+/* ── Column "add" buttons ──────────────────────────────────────── */
+.btn-add-col {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 20px;
+    padding: 8px 18px; border-radius: 99px;
+    background: var(--blue-light);
+    border: 2px solid var(--blue-mid);
+    color: var(--blue-bright);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.btn-add-col:hover  { background: #dbeafe; border-color: var(--blue-bright); }
+.btn-add-col:active { transform: scale(0.96); }
+
+/* ── One network item (input / neuron / output) ───────────────── */
+.network-item {
+    position: relative;
+    min-height: 160px;
     display: flex;
     align-items: center;
-    gap: 0;
-    padding: 10px 0;
     animation: row-in 0.22s cubic-bezier(0.34,1.4,0.64,1);
-}
-
-/* Both halves get the same fixed min-height so arrow midpoints align */
-.neuron-row-left,
-.neuron-row-right {
-    min-height: 140px;
-    align-items: center;
 }
 
 @keyframes row-in {
@@ -321,8 +352,67 @@ html, body {
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Label cell ────────────────────────────────────────────────── */
-.cell-label { width: 68px; flex-shrink: 0; padding-right: 8px; }
+/* Any card that can host a hover-revealed delete button */
+.hover-target {
+    position: relative;
+}
+
+/* Invisible buffer extending past the card's edges. Since it's painted
+   before the card's real content, it never blocks clicks on the card
+   itself -- but it keeps :hover active while the mouse crosses the gap
+   between the card edge and the delete button that sits just outside it. */
+.hover-target::before {
+    content: "";
+    position: absolute;
+    top: -14px; right: -14px; bottom: -14px; left: -14px;
+    z-index: -1;
+}
+
+/* Hover-reveal delete button, sits right on the edge of its own card
+   (attached as a child of the card/eq-node itself, not the outer row,
+   so its position never depends on label width or row height) */
+.item-delete-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 2px solid #fff;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+    transition: opacity 0.12s, transform 0.12s;
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.hover-target:hover .item-delete-btn {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+.item-delete-btn:hover  { background: #991b1b; transform: scale(1.1); }
+.item-delete-btn:active { transform: scale(0.95); }
+
+/* Hidden entirely when it's the last item in its column, so a column
+   can never be emptied */
+.item-delete-btn.item-delete-hidden {
+    display: none !important;
+}
+
+/* Neurons with no matching output yet are visually de-emphasized */
+.eq-node.neuron-unused {
+    opacity: 0.42;
+    filter: grayscale(0.5);
+}
+
+.cell-node { display: flex; align-items: center; }
+
+/* ── Label (input/neuron name) ────────────────────────────────── */
+.cell-label { width: 44px; flex-shrink: 0; padding-right: 6px; }
 
 .name-input {
     width: 100%;
@@ -339,13 +429,8 @@ html, body {
 }
 .name-input:focus { outline: none; border-bottom-color: var(--blue-bright); }
 
-/* ── Gap cells — wide enough to show arrows clearly ───────────── */
-.cell-arrow-gap-in  { width: 80px; flex-shrink: 0; }   /* input → eq: space for fan-in arrows */
-
-/* ── Node cells ────────────────────────────────────────────────── */
-.cell-node { flex-shrink: 0; }
-
-/* ── Node cards ────────────────────────────────────────────────── */
+/* ── Node cards (fixed size at every zoom level, so the embedded plots
+   never get resized/redrawn) ─────────────────────────────────────── */
 .node-card {
     border-radius: 14px;
     border: 2px solid var(--border);
@@ -381,7 +466,7 @@ html, body {
 }
 .node-plot { padding: 5px 7px 3px; }
 .plot-canvas { display: block; width: 100%; height: 70px; border-radius: 6px; }
-.plot-footer { padding: 4px 7px 7px; }
+.plot-footer { padding: 4px 7px 7px; display: flex; flex-direction: column; gap: 4px; }
 .channel-select {
     width: 100%;
     background: rgba(0,0,0,0.04);
@@ -396,11 +481,11 @@ html, body {
 
 /* ── Equation oval node ────────────────────────────────────────── */
 .eq-node {
-    width: 200px;
+    width: max(140px, calc(200px * var(--zoom)));
     background: var(--eq-bg);
     border: 2.5px solid var(--eq-border);
-    border-radius: 60px;
-    padding: 14px 16px;
+    border-radius: calc(60px * var(--zoom));
+    padding: calc(14px * var(--zoom)) calc(16px * var(--zoom));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -410,34 +495,33 @@ html, body {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: calc(4px * var(--zoom));
     justify-content: center;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: calc(12px * var(--text-zoom));
 }
 
 .eq-op {
     color: var(--amber);
     font-weight: 700;
-    font-size: 15px;
+    font-size: calc(15px * var(--text-zoom));
     margin: 0 1px;
 }
 .eq-var {
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: calc(11px * var(--text-zoom));
     margin-right: 2px;
 }
 
-/* Plain text inputs — no spinners */
 .eq-num-input {
-    width: 40px;
+    width: max(28px, calc(40px * var(--zoom)));
     background: #fff;
     border: 1.5px solid var(--amber-mid);
     border-radius: 6px;
     color: var(--text-primary);
     font-family: var(--font-mono);
-    font-size: 11px; font-weight: 700;
-    padding: 3px 4px; text-align: center;
+    font-size: calc(11px * var(--text-zoom)); font-weight: 700;
+    padding: calc(3px * var(--zoom)) calc(4px * var(--zoom)); text-align: center;
     transition: border-color 0.15s;
     -moz-appearance: textfield;
     appearance: textfield;
@@ -447,14 +531,14 @@ html, body {
 .eq-num-input:focus { outline: none; border-color: var(--amber); background: var(--amber-light); }
 
 .eq-bias-input {
-    width: 40px;
+    width: max(28px, calc(40px * var(--zoom)));
     background: #fff;
     border: 1.5px solid var(--blue-mid);
     border-radius: 6px;
     color: var(--blue-bright);
     font-family: var(--font-mono);
-    font-size: 11px; font-weight: 700;
-    padding: 3px 4px; text-align: center;
+    font-size: calc(11px * var(--text-zoom)); font-weight: 700;
+    padding: calc(3px * var(--zoom)) calc(4px * var(--zoom)); text-align: center;
     transition: border-color 0.15s;
     -moz-appearance: textfield;
     appearance: textfield;
@@ -463,43 +547,47 @@ html, body {
 .eq-bias-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .eq-bias-input:focus { outline: none; border-color: var(--blue-bright); background: var(--blue-light); }
 
-/* ── Delete button ─────────────────────────────────────────────── */
-.cell-delete { flex-shrink: 0; margin-left: 8px; }
-.btn-delete-row {
-    display: flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px;
-    border-radius: 9px;
-    background: var(--red-light);
-    border: 1.5px solid #fca5a5;
-    color: var(--red);
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-}
-.btn-delete-row:hover  { background: #fecaca; transform: scale(1.08); }
-.btn-delete-row:active { transform: scale(0.95); }
-
-/* ── Add neuron ────────────────────────────────────────────────── */
-.add-row-bar {
-    display: flex; justify-content: center;
-    padding: 20px 0 8px;
-}
-.btn-add-row {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 22px; border-radius: 99px;
-    background: var(--blue-light);
-    border: 2px solid var(--blue-mid);
-    color: var(--blue-bright);
-    font-family: var(--font-ui); font-size: 13px; font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, transform 0.1s;
-}
-.btn-add-row:hover  { background: #dbeafe; border-color: var(--blue-bright); }
-.btn-add-row:active { transform: scale(0.97); }
-
 /* ── Run bar ───────────────────────────────────────────────────── */
 .run-bar {
     display: flex; align-items: center; justify-content: center;
     gap: 20px; padding: 24px 0 4px;
+}
+
+/* ── Zoom controls (scales the network diagram's spacing/box sizes only) ── */
+.zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 99px;
+    background: #f1f2f7;
+    border: 1.5px solid var(--border-mid);
+}
+.btn-zoom {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1.5px solid var(--border-mid);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s, opacity 0.15s;
+}
+.btn-zoom:hover:not(:disabled)  { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue-bright); }
+.btn-zoom:active:not(:disabled) { transform: scale(0.92); }
+.btn-zoom:disabled { opacity: 0.35; cursor: not-allowed; }
+.zoom-level {
+    min-width: 38px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    user-select: none;
 }
 .btn-run-circle {
     width: 60px; height: 60px; border-radius: 50%; border: none;
@@ -520,66 +608,6 @@ html, body {
     color: #fff;
 }
 .btn-run-stop:hover:not(:disabled) { opacity: 0.88; }
-
-/* ── Modals ────────────────────────────────────────────────────── */
-.modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(10,15,40,0.40);
-    backdrop-filter: blur(3px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 500;
-}
-.modal-overlay.hidden { display: none; }
-.modal {
-    background: var(--card-bg);
-    border-radius: 18px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.16);
-    width: 380px; max-width: 94vw; overflow: hidden;
-}
-.modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--border);
-}
-.modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-.btn-icon {
-    background: none; border: none; cursor: pointer;
-    color: var(--text-muted);
-    display: flex; align-items: center;
-    padding: 5px; border-radius: 7px;
-    transition: color 0.15s, background 0.15s;
-}
-.btn-icon:hover { color: var(--red); background: var(--red-light); }
-.modal-body  { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-.modal-footer {
-    display: flex; justify-content: flex-end; gap: 8px;
-    padding: 14px 20px;
-    border-top: 1px solid var(--border);
-}
-.field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
-.text-input {
-    width: 100%; background: #f8f9fc;
-    border: 1.5px solid var(--border-mid);
-    border-radius: 10px; color: var(--text-primary);
-    font-family: var(--font-ui); font-size: 14px; padding: 9px 13px;
-    transition: border-color 0.15s;
-}
-.text-input:focus { outline: none; border-color: var(--blue-bright); }
-.text-input::placeholder { color: var(--text-muted); }
-.modal-hint { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-
-.btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 18px; border-radius: 99px;
-    font-family: var(--font-ui); font-size: 13px; font-weight: 600;
-    cursor: pointer; border: 1.5px solid transparent;
-    transition: opacity 0.15s, transform 0.1s;
-}
-.btn:active { transform: scale(0.96); }
-.btn-ghost { background: transparent; border-color: var(--border-mid); color: var(--text-secondary); }
-.btn-ghost:hover { background: #f1f2f7; }
-.btn-primary { background: var(--blue-bright); border-color: var(--blue-bright); color: #fff; }
-.btn-primary:hover { opacity: 0.88; }
 
 /* ── Activation help popover ───────────────────────────────────── */
 .act-help-popover {
@@ -629,44 +657,30 @@ html, body {
 
 .hidden { display: none !important; }
 
-.act-col.act-col-custom {
-    width: max-content;
-}
-
-.act-box.has-custom {
-    width: max-content;
-    min-width: 0;
-}
+.col-activation.act-col-custom { width: max-content; }
 
 .act-box.has-custom {
     width: auto;
     min-width: 300px;
 }
-#custom-default-expr {
-    width: 100px;
-    flex: 0 0 auto;
-}
+#custom-default-expr { width: 100px; flex: 0 0 auto; }
 
 .custom-act-box {
     display: flex;
     flex-direction: column;
-    align-items: center;   /* add this */
+    align-items: center;
     gap: 10px;
     width: 100%;
     margin-top: 4px;
 }
 
-.custom-eq-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: center;
-}
 .custom-fx-label {
     font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 700;
     color: var(--purple);
+    flex-shrink: 0;
+    align-self: center;
 }
 .custom-eq-input {
     flex: 1;
@@ -686,7 +700,7 @@ html, body {
 
 .custom-pieces-wrap {
     display: flex;
-    align-items: center;   /* brace and piece list vertically centered together */
+    align-items: center;
     gap: 6px;
 }
 .custom-brace {
@@ -696,7 +710,7 @@ html, body {
     font-weight: 300;
     display: flex;
     align-items: center;
-    align-self: stretch;    /* brace stretches to full height of piece list */
+    align-self: stretch;
     padding-right: 2px;
     user-select: none;
 }
@@ -768,7 +782,6 @@ html, body {
     justify-content: center;
     padding: 0;
 }
-
 .btn-remove-piece:hover { background: #fecaca; }
 
 .btn-add-piece {
@@ -786,20 +799,10 @@ html, body {
 
 .custom-main-row {
     display: flex;
-    align-items: flex-start;   /* change to: */
     align-items: center;
     gap: 6px;
     width: 100%;
-    justify-content: center;   /* add this */
-}
-
-.custom-fx-label {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--purple);
-    flex-shrink: 0;
-    align-self: center;   /* replaces padding-top: 5px */
+    justify-content: center;
 }
 
 .debug-toggle {
@@ -843,9 +846,12 @@ html, body {
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 960px) {
-    .page-wrap { padding: 20px 12px 60px; }
+    body { padding: 12px; }
     .input-node, .output-node { width: 155px; }
     .eq-node    { width: 170px; }
-    .act-col    { width: 100px; margin-left: 40px; margin-right: 40px; }
-    .cell-arrow-gap-in  { width: 56px; }
+    .col-activation { width: 100px; }
+    .col-inputs  { margin-right: 56px; }
+    .col-neurons { margin-right: 40px; }
+    .col-activation { margin-right: 40px; }
+    .col-add-layer { margin-right: 40px; }
 }
