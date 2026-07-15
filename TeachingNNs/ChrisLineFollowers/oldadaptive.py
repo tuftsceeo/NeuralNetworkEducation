@@ -253,9 +253,9 @@ class LivePlot:
 # Hardware setup
 # =========================================================
 sensor = colorSensor()
-sensor.connect(card_serial="1133")
+sensor.connect(card_serial="6081")
 motor = doubleMotor()
-motor.connect(card_serial="1133")
+motor.connect(card_serial="6081")
 
 net = Net()
 cal = Calibrator()

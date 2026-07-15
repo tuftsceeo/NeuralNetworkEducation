@@ -375,7 +375,7 @@ body {
     position: absolute;
     top: -8px;
     right: -8px;
-    width: 25px; height: 25px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: var(--red);
     border: 2px solid #fff;
@@ -479,6 +479,31 @@ body {
 }
 .channel-select:focus { outline: none; border-color: var(--blue-bright); }
 
+.target-row {
+    display: flex; align-items: center; gap: 6px;
+}
+.target-label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+.target-input {
+    width: 100%; min-width: 0;
+    background: var(--eq-bg);
+    border: 1.5px solid var(--eq-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    padding: 3px 6px; text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.target-input::-webkit-inner-spin-button,
+.target-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.target-input:focus { outline: none; border-color: var(--amber); }
+
 /* ── Equation oval node ────────────────────────────────────────── */
 .eq-node {
     width: max(140px, calc(200px * var(--zoom)));
@@ -546,6 +571,60 @@ body {
 .eq-bias-input::-webkit-inner-spin-button,
 .eq-bias-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .eq-bias-input:focus { outline: none; border-color: var(--blue-bright); background: var(--blue-light); }
+
+/* ── Train bar (randomize / test / backpropagate) ────────────────── */
+.train-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 22px 0 0; flex-wrap: wrap;
+}
+.btn-train {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px; border-radius: 99px;
+    background: var(--blue-light);
+    border: 2px solid var(--blue-mid);
+    color: var(--blue-bright);
+    font-family: var(--font-ui); font-size: 12.5px; font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.btn-train:hover  { background: #dbeafe; border-color: var(--blue-bright); }
+.btn-train:active { transform: scale(0.96); }
+
+.btn-train-accent {
+    background: var(--purple-light);
+    border-color: var(--purple-mid);
+    color: var(--purple);
+}
+.btn-train-accent:hover { background: #ddd6fe; border-color: var(--purple); }
+
+.lr-control {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 4px 4px 14px;
+    border-radius: 99px;
+    background: #f1f2f7;
+    border: 1.5px solid var(--border-mid);
+    cursor: default;
+}
+.lr-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.lr-input {
+    width: 56px;
+    background: #fff;
+    border: 1.5px solid var(--border-mid);
+    border-radius: 99px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px; text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.lr-input::-webkit-inner-spin-button,
+.lr-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.lr-input:focus { outline: none; border-color: var(--blue-bright); }
 
 /* ── Run bar ───────────────────────────────────────────────────── */
 .run-bar {
