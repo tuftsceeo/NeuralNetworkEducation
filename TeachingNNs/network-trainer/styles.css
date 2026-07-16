@@ -112,7 +112,7 @@ body {
     color: var(--text-muted);
 }
 
-.device-list { display: flex; flex-direction: column; gap: 10px; }
+.device-list { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
 
 .btn-add-device {
     display: inline-flex;
@@ -921,6 +921,185 @@ body {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
+}
+
+/* ── Dataset + training visualization row ────────────────────────── */
+.training-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* ── Dataset card ─────────────────────────────────────────────────── */
+.dataset-card { padding: 22px 28px; flex: 0 0 320px; width: 320px; }
+
+.dataset-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+
+.dataset-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dataset-row > * {
+    flex: 1 1 0;
+    min-width: 46px;
+}
+
+.dataset-row > .dataset-col-delete,
+.dataset-row > .btn-remove-point {
+    flex: 0 0 24px;
+    min-width: 24px;
+}
+
+.dataset-row-header span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+}
+.dataset-row-header-x { color: var(--blue-bright) !important; }
+.dataset-row-header-y { color: var(--green) !important; }
+
+.dataset-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.dataset-num-input {
+    width: 100%;
+    background: var(--eq-bg);
+    border: 1.5px solid var(--eq-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600;
+    padding: 5px 8px; text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.dataset-num-input::-webkit-inner-spin-button,
+.dataset-num-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.dataset-num-input:focus { outline: none; border-color: var(--amber); }
+
+/* x column matches the network's input color; y/output column matches
+   the network's output color, so the dataset table visually lines up
+   with the input/output nodes in the diagram above. */
+.dataset-num-input-x {
+    background: var(--blue-light);
+    border-color: var(--blue-mid);
+    color: var(--blue-bright);
+}
+.dataset-num-input-x:focus { border-color: var(--blue-bright); }
+
+.dataset-num-input-y {
+    background: var(--out-bg);
+    border-color: var(--green-light);
+    color: var(--green);
+}
+.dataset-num-input-y:focus { border-color: var(--green); }
+
+.btn-remove-point {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: var(--red-light);
+    color: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.btn-remove-point:hover { background: #fecaca; }
+
+.dataset-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1.5px solid var(--border);
+}
+
+.dataset-add-row .dataset-num-input {
+    flex: 1 1 60px;
+    min-width: 46px;
+}
+
+.btn-add-point {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 99px;
+    background: var(--blue-bright);
+    color: #fff;
+    border: none;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s, transform 0.1s;
+}
+.btn-add-point:hover  { opacity: 0.88; }
+.btn-add-point:active { transform: scale(0.97); }
+
+/* ── Training visualization card ─────────────────────────────────── */
+.training-card { padding: 22px 28px; flex: 1 1 480px; min-width: 360px; }
+
+.training-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.training-plots {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.training-plot-block {
+    flex: 1 1 360px;
+    min-width: 300px;
+}
+
+.training-plot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.btn-clear-plot {
+    background: var(--blue-light);
+    border: 1.5px solid var(--blue-mid);
+    color: var(--blue-bright);
+    border-radius: 99px;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.btn-clear-plot:hover { background: #dbeafe; border-color: var(--blue-bright); }
+
+.training-plot-canvas {
+    width: 100%;
+    height: 280px;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */

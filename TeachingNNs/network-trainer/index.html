@@ -99,25 +99,6 @@
                     </svg>
                     Randomize weights
                 </button>
-                <button class="btn-train" id="test-btn" title="Push the current input reading through the network and plot the result">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.2">
-                        <circle cx="12" cy="12" r="9"/>
-                        <circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>
-                    </svg>
-                    Test
-                </button>
-                <button class="btn-train btn-train-accent" id="backprop-btn" title="Backpropagate the error between the tested points and their target values into every weight and bias">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.2">
-                        <path d="M12 4v13M12 17l-5-5M12 17l5-5"/>
-                    </svg>
-                    Backpropagate
-                </button>
-                <label class="lr-control" title="Step size used by Backpropagate">
-                    <span class="lr-label">Learning rate</span>
-                    <input type="number" class="lr-input" id="learning-rate-input" value="0.05" step="0.01" min="0.001" />
-                </label>
             </div>
 
             <div class="run-bar">
@@ -136,6 +117,62 @@
                     <span class="debug-toggle-track"><span class="debug-toggle-thumb"></span></span>
                     <span class="debug-toggle-label">Debug</span>
                 </label>
+            </div>
+
+        </div>
+
+        <!-- ── Dataset + training visualization row ─────────────────── -->
+        <div class="training-row">
+
+            <!-- ── Dataset card ─────────────────────────────────────── -->
+            <div class="card dataset-card">
+                <div class="connect-header">
+                    <span class="connect-title">Training data</span>
+                </div>
+                <div class="dataset-table">
+                    <div class="dataset-row dataset-row-header" id="dataset-header"></div>
+                    <div class="dataset-rows" id="dataset-rows"></div>
+                </div>
+                <div class="dataset-add-row" id="dataset-add-row"></div>
+            </div>
+
+            <!-- ── Training visualization card ─────────────────────── -->
+            <div class="card training-card">
+                <div class="training-controls-bar">
+                    <button class="btn-train btn-train-accent" id="step-btn" title="One epoch: one pass over the whole dataset, one averaged gradient update">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Step
+                    </button>
+                    <button class="btn-train btn-train-accent" id="train30-btn" title="Run 30 epochs, updating the loss chart after each one">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Train 30 epochs
+                    </button>
+                    <label class="lr-control" title="Step size used by Step / Train 30 epochs">
+                        <span class="lr-label">Learning rate</span>
+                        <input type="number" class="lr-input" id="learning-rate-input" value="0.05" step="0.01" min="0.001" />
+                    </label>
+                </div>
+                <div class="training-plots">
+                    <div class="training-plot-block">
+                        <div class="connect-header training-plot-header">
+                            <span class="connect-title">Fit</span>
+                            <button class="btn-clear-plot" id="clear-fit-btn" title="Clear the live output trace">Clear</button>
+                        </div>
+                        <div class="training-plot-canvas" id="plot-fit"></div>
+                    </div>
+                    <div class="training-plot-block">
+                        <div class="connect-header">
+                            <span class="connect-title">Loss</span>
+                        </div>
+                        <div class="training-plot-canvas" id="plot-loss"></div>
+                    </div>
+                </div>
             </div>
 
         </div>

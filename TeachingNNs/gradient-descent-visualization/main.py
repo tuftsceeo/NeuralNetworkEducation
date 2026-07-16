@@ -29,7 +29,8 @@ custom_error_input = el("custom-error-input")
 lr_input = el("lr-input")
 randomize_btn = el("randomize-btn")
 reset_btn = el("reset-btn")
-setup_row_el = el("setup-row")
+setup_row_el = el("controls-cell")
+dataset_section_el = el("dataset-section")
 back_epoch_btn = el("back-epoch-btn")
 back_step_btn = el("back-step-btn")
 step_btn = el("step-btn")
@@ -37,6 +38,7 @@ epoch_btn = el("epoch-btn")
 play_pause_btn = el("play-pause-btn")
 toggle_explanation_btn = el("toggle-explanation-btn")
 flowchart_panel_el = el("flowchart-panel")
+point_pass_col_el = el("point-pass-stack")
 prediction_plot_el = el("prediction-plot")
 loss_plot_el = el("loss-plot")
 live_network_eq_el = el("live-network-eq")
@@ -94,8 +96,8 @@ def _mae_grad(pred, y):
 
 
 ERROR_FUNCTIONS = {
-    "mse": (lambda pred, y: (pred - y) ** 2, lambda pred, y: 2 * (pred - y)),
-    "mae": (lambda pred, y: abs(pred - y), _mae_grad),
+    "mse": (lambda pred, y: (pred - y) ** 2, lambda pred, y: 2 * (pred - y)), 
+    "mae": (lambda pred, y: abs(pred - y), _mae_grad), # abs pred - y is gradient
 }
 
 SAFE_NAMES = {
@@ -153,19 +155,19 @@ def compute_error_and_grads(x1, y1, pred1, x2, y2, pred2, e_fn, grad_fn):
 
 def direction_arrow(delta):
     if delta > 0:
-        return "down"
-    if delta < 0:
         return "up"
+    if delta < 0:
+        return "down"
     return "flat"
 
 
 def compute_update(w, b, dE_dw, dE_db, lr):
-    delta_w, delta_b = lr * dE_dw, lr * dE_db
+    delta_w, delta_b = -lr * dE_dw, -lr * dE_db # i flipped the sign so that a positive delta would mean that it goes up
     return {
         "delta_w": delta_w,
         "delta_b": delta_b,
-        "w_new": w - delta_w,
-        "b_new": b - delta_b,
+        "w_new": w + delta_w,
+        "b_new": b + delta_b,
         "w_dir": direction_arrow(delta_w),
         "b_dir": direction_arrow(delta_b),
     }
@@ -204,14 +206,22 @@ def set_tip(elem, text):
     return elem
 
 
-def build_flow_skeleton():
-    flowchart_panel_el.innerHTML = ""
+def build_point_pass_skeleton():
+    """Builds the small per-point forward-pass diagrams (p1, p2), stacked
+    vertically and centered inside #point-pass-stack, below the network
+    diagram. Starts with a plain-text "Input" / "Output" header row - no
+    node-box padding/border, so its height matches the "Dataset" title
+    exactly and the two columns stay tightly stacked in lockstep."""
+    point_pass_col_el.innerHTML = ""
 
-    block = make_el("div", "epoch-block")
-    block.id = "epoch-block"
+    header = make_el("div", "point-pass-header")
+    header.appendChild(make_el("div", "point-io-label", text="Input"))
+    header.appendChild(make_el("div", "flow-arrow point-io-spacer", text="→"))
+    header.appendChild(make_el("div", "point-io-mid-spacer"))
+    header.appendChild(make_el("div", "eq-op point-io-spacer", text="\u2192"))
+    header.appendChild(make_el("div", "point-io-label", text="Output"))
+    point_pass_col_el.appendChild(header)
 
-    # ── per-point calculation boxes (kept visually separate) ──────
-    point_row = make_el("div", "point-row")
     for label in ("p1", "p2"):
         box = make_el("div", "point-calc-box state-inactive")
         box.id = f"point-box-{label}"
@@ -234,8 +244,14 @@ def build_flow_skeleton():
         diagram.appendChild(out)
 
         box.appendChild(diagram)
-        point_row.appendChild(box)
-    block.appendChild(point_row)
+        point_pass_col_el.appendChild(box)
+
+
+def build_flow_skeleton():
+    flowchart_panel_el.innerHTML = ""
+
+    block = make_el("div", "epoch-block")
+    block.id = "epoch-block"
 
     flow_wrap = make_el("div", "flowchart-wrap")
     flow_wrap.id = "flowchart-wrap"
@@ -266,13 +282,13 @@ def build_flow_skeleton():
     cell_w = make_el("div", "update-cell")
     node_w = make_el("div", "eq-node update-node w-color", text="\u0394w = –")
     node_w.id = "update-w-node"
-    set_tip(node_w, "\u0394w = learning rate \u00d7 w's gradient")
+    set_tip(node_w, "\u0394w = \u2212learning rate \u00d7 w's gradient")
     cell_w.appendChild(node_w)
 
     cell_b = make_el("div", "update-cell")
     node_b = make_el("div", "eq-node update-node b-color", text="\u0394b = –")
     node_b.id = "update-b-node"
-    set_tip(node_b, "\u0394b = learning rate \u00d7 b's gradient")
+    set_tip(node_b, "\u0394b = \u2212learning rate \u00d7 b's gradient")
     cell_b.appendChild(node_b)
 
     update_row.appendChild(cell_w)
@@ -281,14 +297,14 @@ def build_flow_skeleton():
 
     final_row = make_el("div", "flow-row flow-row-final state-inactive")
     final_row.id = "flow-row-final"
-    final_w = make_el("div", "final-param w-color")
+    final_w = make_el("div", "eq-node final-node w-color")
     final_w.id = "final-w-node"
     final_w.innerHTML = "<span class='dir-arrow'>–</span> w = –"
-    set_tip(final_w, "new w = old w \u2212 \u0394w")
-    final_b = make_el("div", "final-param b-color")
+    set_tip(final_w, "new w = old w + \u0394w")
+    final_b = make_el("div", "eq-node final-node b-color")
     final_b.id = "final-b-node"
     final_b.innerHTML = "<span class='dir-arrow'>–</span> b = –"
-    set_tip(final_b, "new b = old b \u2212 \u0394b")
+    set_tip(final_b, "new b = old b + \u0394b")
     final_row.appendChild(final_w)
     final_row.appendChild(final_b)
     flow_wrap.appendChild(final_row)
@@ -589,12 +605,7 @@ def _render_one_slice(plot_el, xs, es, T, x0, E0, grad_val, color, param_symbol)
         "marker": {"color": "#1a1d2e", "size": 8, "line": {"color": "#fff", "width": 1.5}},
     }
 
-    shapes = [
-        {"type": "line", "xref": "x", "yref": "paper", "x0": x0, "x1": x0, "y0": 0, "y1": 1,
-         "line": {"color": "#9ca3b8", "width": 1, "dash": "dot"}},
-        {"type": "line", "xref": "x", "yref": "paper", "x0": x_vertex, "x1": x_vertex, "y0": 0, "y1": 1,
-         "line": {"color": "#9ca3b8", "width": 1, "dash": "dot"}},
-    ]
+    shapes = []
     annotations = [{
         "x": x0, "y": E0, "ax": 0, "ay": -26, "xref": "x", "yref": "y",
         "text": f"dE/d{param_symbol} = {fmt(grad_val)}",
@@ -604,15 +615,6 @@ def _render_one_slice(plot_el, xs, es, T, x0, E0, grad_val, color, param_symbol)
     }]
 
     if abs(x_vertex - x0) > 1e-9:
-        lo, hi = (x0, x_vertex) if x_vertex > x0 else (x_vertex, x0)
-        shapes.append({"type": "rect", "xref": "x", "yref": "paper",
-                        "x0": lo, "x1": hi, "y0": 0, "y1": 1,
-                        "fillcolor": "rgba(5,150,105,0.09)", "line": {"width": 0}, "layer": "below"})
-        for seg_lo, seg_hi in ((x0 - T, min(x0, x_vertex)), (max(x0, x_vertex), x0 + T)):
-            if seg_hi - seg_lo > 1e-9:
-                shapes.append({"type": "rect", "xref": "x", "yref": "paper",
-                                "x0": seg_lo, "x1": seg_hi, "y0": 0, "y1": 1,
-                                "fillcolor": "rgba(220,38,38,0.07)", "line": {"width": 0}, "layer": "below"})
         annotations.append({
             "x": x_vertex, "y": 0, "yref": "paper", "yanchor": "bottom", "xref": "x",
             "text": "min", "showarrow": False, "font": {"size": 8, "color": "#9ca3b8"},
@@ -724,6 +726,7 @@ def restore_snapshot(snap):
         elif state.step_index == 2:
             render_grad_row(state.grad_result)
             set_all_states("done", "done", "active", "inactive", "inactive")
+            render_slice_plots()
         elif state.step_index == 3:
             render_grad_row(state.grad_result)
             render_update_row(state.update_result)
@@ -739,7 +742,6 @@ def restore_snapshot(snap):
     render_live_network_diagram(state.w, state.b, highlight=highlight)
     update_prediction_plot()
     update_loss_plot()
-    render_slice_plots()
     update_back_button_states()
 
 
@@ -790,6 +792,7 @@ def randomize_and_reset():
     state.last_b_dir = None
 
     build_flow_skeleton()
+    build_point_pass_skeleton()
     reset_flow_display()
     render_live_network_diagram(state.w, state.b)
     init_prediction_plot()
@@ -818,6 +821,77 @@ def on_randomize_click(event=None):
 # ─────────────────────────────────────────────────────────────────
 # Step state machine
 # ─────────────────────────────────────────────────────────────────
+
+async def _float_value_to(text, color, source_el, dest_el, src_x_frac=0.5, dest_x_frac=0.5):
+    """Animates a small floating clone of `text` from a point within
+    source_el to a point within dest_el, at full size/opacity the whole
+    way, then simply disappears on arrival.
+
+    src_x_frac / dest_x_frac control how far across the source's /
+    destination's width the start/end point sits (0 = left edge,
+    1 = right edge, 0.5 = center)."""
+    if source_el is None or dest_el is None:
+        return
+    try:
+        src_rect = source_el.getBoundingClientRect()
+        dst_rect = dest_el.getBoundingClientRect()
+    except Exception:
+        return
+
+    src_x = src_rect.left + src_rect.width * src_x_frac
+    src_y = src_rect.top + src_rect.height / 2
+
+    clone = document.createElement("div")
+    clone.className = "float-up-value"
+    clone.textContent = text
+    clone.style.left = f"{src_x}px"
+    clone.style.top = f"{src_y}px"
+    clone.style.color = color
+    document.body.appendChild(clone)
+
+    # Force layout so the starting position is committed before we
+    # change it - otherwise the browser may skip straight to the final
+    # position with no visible transition.
+    _ = clone.offsetHeight
+
+    dst_x = dst_rect.left + dst_rect.width * dest_x_frac
+    dst_y = dst_rect.top + dst_rect.height / 2
+    dx = dst_x - src_x
+    dy = dst_y - src_y
+    clone.style.transform = f"translate({dx}px, {dy}px)"
+
+    await asyncio.sleep(0.6)
+    clone.remove()
+
+
+async def animate_values_replacing_network(w_new, b_new):
+    """At the end of a manual epoch step, floats the final w/b values up
+    from the flowchart's last row to the live network diagram - w
+    heading toward the left side of the equation node (where the w
+    term sits) and b toward the right side (where the b term sits).
+    The network's displayed w/b only actually update once the floating
+    values arrive - not before - so it reads as the new values
+    traveling up and becoming the network's values, rather than the
+    network instantly changing while numbers fly past it."""
+    w_source = el("final-w-node")
+    b_source = el("final-b-node")
+    dest = el("live-network-eq")
+    if w_source is None or b_source is None or dest is None:
+        render_live_network_diagram(w_new, b_new, highlight=True)
+        return
+
+    await asyncio.gather(
+        _float_value_to(f"w = {fmt(w_new)}", "#0e6b7a", w_source, dest,
+                         src_x_frac=0.2, dest_x_frac=0.10),
+        _float_value_to(f"b = {fmt(b_new)}", "#b45309", b_source, dest,
+                         src_x_frac=0.2, dest_x_frac=0.62),
+    )
+
+    render_live_network_diagram(w_new, b_new, highlight=True)
+    dest.classList.add("value-pop")
+    await asyncio.sleep(0.3)
+    dest.classList.remove("value-pop")
+
 
 def do_step():
     if not ensure_initialized():
@@ -848,13 +922,13 @@ def do_step():
         state.grad_result = err
         state.update_result = None
         render_error_row(err)
-        render_slice_plots()
         set_all_states("active", "active", "inactive", "inactive", "inactive")
         state.step_index = 1
 
     elif state.step_index == 1:
         render_grad_row(state.grad_result)
         set_all_states("done", "done", "active", "inactive", "inactive")
+        render_slice_plots()
         state.step_index = 2
 
     elif state.step_index == 2:
@@ -869,7 +943,9 @@ def do_step():
         set_all_states("done", "done", "done", "done", "active")
         state.last_w_dir = state.update_result["w_dir"]
         state.last_b_dir = state.update_result["b_dir"]
-        render_live_network_diagram(state.update_result["w_new"], state.update_result["b_new"], highlight=True)
+        asyncio.ensure_future(animate_values_replacing_network(
+            state.update_result["w_new"], state.update_result["b_new"]
+        ))
 
         state.loss_history.append((state.epoch, state.grad_result["E"]))
         update_loss_plot()
@@ -963,7 +1039,7 @@ def backward_epoch():
 # Play / Pause
 # ─────────────────────────────────────────────────────────────────
 
-PLAY_TURBO_DELAY = 0.08  # faster than manual stepping; updates once per epoch
+PLAY_TURBO_DELAY = 0.04  # faster than manual stepping; updates once per epoch
 
 _play_task = None
 
@@ -982,8 +1058,10 @@ def enable_training_controls(enabled):
 def set_setup_controls_locked(locked):
     if locked:
         setup_row_el.classList.add("controls-locked")
+        dataset_section_el.classList.add("controls-locked")
     else:
         setup_row_el.classList.remove("controls-locked")
+        dataset_section_el.classList.remove("controls-locked")
     for field in (p1x_input, p1y_input, p2x_input, p2y_input,
                   error_select, custom_error_input, lr_input, randomize_btn):
         field.disabled = locked
@@ -1106,6 +1184,7 @@ document.defaultView.addEventListener("resize", window_resize_proxy)
 
 on_error_select_change()
 build_flow_skeleton()
+build_point_pass_skeleton()
 enable_training_controls(False)
 randomize_and_reset()
 el("loading-splash").classList.add("hidden")

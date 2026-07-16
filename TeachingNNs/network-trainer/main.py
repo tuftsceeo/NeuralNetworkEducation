@@ -61,6 +61,7 @@ output_counter = 0
 
 devices: list[Element] = []
 is_running       = False
+run_tick         = 0   # ticks since play_network() started, used as the x-axis for the live output plot
 all_plots: dict[str, object] = {}
 
 debug_mode = False
@@ -88,7 +89,11 @@ DEFAULT_LEARNING_RATE = 0.05   # seeds the on-page learning-rate box; the box wi
 # most recent Test() call. Backpropagate() needs this to compute weight
 # gradients, since forward() overwrites neuron_pre/post_values continuously
 # while the network is Running.
-last_test_layer_sources: list[list[float]] = []
+# Dataset-based training (Phase 1+) -------------------------------------------
+training_data: list[dict] = []   # [{"id": int, "xs": {iid: float}, "ys": {oid: float}}, ...]
+data_point_counter = 0
+loss_history: list[float] = []
+normalize_enabled = True
 
 ACTIVATION_OPTIONS = [
     ("None",     ""),
@@ -575,10 +580,6 @@ def make_output_html(out: dict) -> str:
                 <select class="channel-select" id="chan-out-{oid}">
                     <option value="">— value —</option>
                 </select>
-                <div class="target-row">
-                    <span class="target-label">target y</span>
-                    <input type="number" step="any" class="target-input" id="target-out-{oid}" value="0" />
-                </div>
             </div>
         </div>
     </div>
@@ -834,12 +835,13 @@ def on_output_device_change(evt):
     if chan_sel:
         chan_sel.innerHTML = get_out_channels_html(matched)
 
-    plot_id = f"plot-out-{oid}"
-    _detach_plot_from_device(plot_id, out.get("prev_device"))
+    # NOTE: unlike inputs, the output's live plot is fed exclusively by
+    # forward()'s per-tick push of the network's computed output (so it
+    # shows what the network is commanding, not raw hardware feedback) --
+    # it's deliberately never attached to device.plots/plot_vars.
     first_channel = None
     if chan_sel and chan_sel.options.length > 0:
         first_channel = chan_sel.options.item(0).value
-    _attach_plot_to_device(plot_id, dev_name, first_channel)
 
     out["prev_device"]  = dev_name
     out["prev_channel"] = first_channel
@@ -853,10 +855,6 @@ def on_output_channel_change(evt):
     dev_sel = get_id(f"dev-out-{oid}")
     dev_name = dev_sel.value if dev_sel else ""
     channel  = sel.value
-    plot_id  = f"plot-out-{oid}"
-
-    _detach_plot_from_device(plot_id, out.get("prev_device"))
-    _attach_plot_to_device(plot_id, dev_name, channel)
 
     out["prev_device"]  = dev_name
     out["prev_channel"] = channel
@@ -957,6 +955,13 @@ def add_input(evt=None):
 
     update_delete_visibility(inputs, "input")
 
+    for p in training_data:
+        p["xs"].setdefault(iid, 0.0)
+    render_dataset_header()
+    render_dataset_table()
+    render_add_point_row()
+    refresh_dataset_plot_points()
+
     def make_plot(iid=iid):
         all_plots[f"plot-in-{iid}"] = plot.plot(f"plot-in-{iid}")
     window.setTimeout(create_proxy(make_plot), 60)
@@ -985,6 +990,13 @@ def delete_input(iid: int):
             if idx < len(n["weights"]):
                 n["weights"].pop(idx)
         rebuild_layer_eq_html(0)
+
+    for p in training_data:
+        p["xs"].pop(iid, None)
+    render_dataset_header()
+    render_dataset_table()
+    render_add_point_row()
+    refresh_dataset_plot_points()
 
     update_delete_visibility(inputs, "input")
     window.setTimeout(create_proxy(lambda: redraw_arrows()), 60)
@@ -1118,8 +1130,20 @@ def add_output(evt=None):
     bind_output_events(oid)
 
     def make_plot(oid=oid):
-        all_plots[f"plot-out-{oid}"] = plot.scatter_plot(f"plot-out-{oid}")
+        all_plots[f"plot-out-{oid}"] = plot.plot(f"plot-out-{oid}")
     window.setTimeout(create_proxy(make_plot), 60)
+
+    for p in training_data:
+        p["ys"].setdefault(oid, 0.0)
+
+    fit_plot_obj = all_plots.get("plot-fit")
+    if fit_plot_obj:
+        fit_plot_obj.add_output_trace(oid)
+
+    render_dataset_header()
+    render_dataset_table()
+    render_add_point_row()
+    refresh_dataset_plot_points()
 
     update_delete_visibility(outputs, "output")
     update_neuron_usage_state()
@@ -1131,11 +1155,11 @@ def delete_output(oid: int):
     idx = next((i for i, o in enumerate(outputs) if o["id"] == oid), None)
     if idx is None:
         return
-    out = outputs[idx]
+    all_plots.pop(f"plot-out-{oid}", None)
 
-    plot_id = f"plot-out-{oid}"
-    _detach_plot_from_device(plot_id, out.get("prev_device"))
-    all_plots.pop(plot_id, None)
+    fit_plot_obj = all_plots.get("plot-fit")
+    if fit_plot_obj:
+        fit_plot_obj.remove_output_trace(oid)
 
     el = get_id(f"item-output-{oid}")
     if el:
@@ -1143,6 +1167,12 @@ def delete_output(oid: int):
 
     outputs.pop(idx)
     output_values.pop(oid, None)
+
+    for p in training_data:
+        p["ys"].pop(oid, None)
+    render_dataset_header()
+    render_dataset_table()
+    render_add_point_row()
 
     update_delete_visibility(outputs, "output")
     update_neuron_usage_state()
@@ -1152,7 +1182,6 @@ def delete_output(oid: int):
 
 async def add_device_chip(dev: Element):
     dl  = get_id("device-list")
-    btn = get_id("add-device-btn")
 
     name = dev.name
     chip = document.createElement("div")
@@ -1182,7 +1211,7 @@ async def add_device_chip(dev: Element):
         return create_proxy(handler)
 
     disc.addEventListener("click", await make_disc(dev))
-    dl.insertBefore(chip, btn)
+    dl.appendChild(chip)
     refresh_device_dropdowns()
 
 async def create_new_device(evt=None):
@@ -1199,8 +1228,14 @@ async def create_new_device(evt=None):
 # ── Play / Stop ──────────────────────────────────────────────────────────────
 
 def play_network(evt=None):
-    global is_running
+    global is_running, run_tick
     is_running = True
+    run_tick = 0
+
+    fit_plot_obj = all_plots.get("plot-fit")
+    if fit_plot_obj:
+        fit_plot_obj.reset_run()
+
     get_id("play-btn").setAttribute("disabled", "")
     get_id("stop-btn").removeAttribute("disabled")
     document.body.classList.add("running")
@@ -1240,6 +1275,35 @@ async def loop_network():
             redraw_arrows()
         await asyncio.sleep(0.05)
 
+def propagate_layers(source_values: list[float], pre_store: dict, post_store: dict) -> tuple[list[float], list[list[float]]]:
+    """Runs source_values through every layer in order, writing each neuron's
+    pre/post-activation value into pre_store/post_store (caller passes the
+    live global dicts for hardware mode, or fresh local dicts for a
+    dataset-training forward pass so the two don't clobber each other).
+
+    Returns (final_layer_outputs, layer_sources) where layer_sources[i] is
+    the list of source values that fed layers[i]."""
+    layer_sources: list[list[float]] = []
+    for layer in layers:
+        layer_sources.append(source_values)
+        act_fn = layer["act_fn"]
+        custom_activation = layer["custom_activation"]
+        next_source_values = []
+        for n in layer["neurons"]:
+            nid = n["id"]
+            weighted = sum(
+                n["weights"][i] * source_values[i]
+                for i in range(min(len(n["weights"]), len(source_values)))
+            )
+            pre_act = weighted + n["bias"]
+            pre_store[nid] = pre_act
+
+            post_act = apply_activation(pre_act, act_fn, custom_activation)
+            post_store[nid] = post_act
+            next_source_values.append(post_act)
+        source_values = next_source_values
+    return source_values, layer_sources
+
 def compute_forward() -> list[list[float]]:
     """Read the current input device readings and forward-propagate them
     through every layer, populating input_values / neuron_pre_values /
@@ -1267,25 +1331,7 @@ def compute_forward() -> list[list[float]]:
 
     # 2. Forward-propagate through every layer in order
     source_values = [input_values.get(inp["id"], 0.0) for inp in inputs]
-    layer_sources: list[list[float]] = []
-    for layer in layers:
-        layer_sources.append(source_values)
-        act_fn = layer["act_fn"]
-        custom_activation = layer["custom_activation"]
-        next_source_values = []
-        for n in layer["neurons"]:
-            nid = n["id"]
-            weighted = sum(
-                n["weights"][i] * source_values[i]
-                for i in range(min(len(n["weights"]), len(source_values)))
-            )
-            pre_act = weighted + n["bias"]
-            neuron_pre_values[nid] = pre_act
-
-            post_act = apply_activation(pre_act, act_fn, custom_activation)
-            neuron_post_values[nid] = post_act
-            next_source_values.append(post_act)
-        source_values = next_source_values
+    _, layer_sources = propagate_layers(source_values, neuron_pre_values, neuron_post_values)
 
     # 3. Route each output from the last layer's neuron at the same position
     last_layer_neurons = layers[-1]["neurons"] if layers else []
@@ -1297,34 +1343,19 @@ def compute_forward() -> list[list[float]]:
     return layer_sources
 
 def forward():
+    global run_tick
     compute_forward()
+    run_tick += 1
 
     for idx, out in enumerate(outputs):
         oid = out["id"]
-        result = int(output_values.get(oid, 0.0))
+        y_val = output_values.get(oid, 0.0)
+        result = int(y_val)
         dev_el  = get_id(f"dev-out-{oid}")
         chan_el = get_id(f"chan-out-{oid}")
         dev_name = dev_el.value if dev_el else ""
         channel  = chan_el.value if chan_el else ""
         run_output(channel, dev_name, result)
-
-def test_network(evt=None):
-    """Forward-propagate the current input reading WITHOUT touching the
-    hardware, and drop a point on each output's scatter plot at
-    (first input's value, predicted output). Snapshots the activations so
-    backpropagate() can train against this exact pass."""
-    global last_test_layer_sources
-    if not inputs or not layers or not outputs:
-        print("Add at least one input, layer, and output before testing.")
-        return
-
-    last_test_layer_sources = compute_forward()
-    redraw_arrows()
-
-    x_val = input_values.get(inputs[0]["id"], 0.0)
-    for out in outputs:
-        oid = out["id"]
-        y_val = output_values.get(oid, 0.0)
 
         reading_el = get_id(f"reading-out-{oid}")
         if reading_el:
@@ -1332,11 +1363,18 @@ def test_network(evt=None):
 
         plot_obj = all_plots.get(f"plot-out-{oid}")
         if plot_obj:
-            update = plot_obj.addPoint(x_val, y_val)
+            update = plot_obj.addPoints(1, [y_val])
             plot_obj.updatePlot(update)
+
+    fit_plot_obj = all_plots.get("plot-fit")
+    if fit_plot_obj and inputs and outputs:
+        x_val = input_values.get(inputs[0]["id"], 0.0)
+        for out in outputs:
+            fit_plot_obj.add_run_point(out["id"], x_val, output_values.get(out["id"], 0.0))
 
 def randomize_weights(evt=None):
     """Give every neuron in every layer a fresh random weight vector + bias."""
+    global loss_history
     for layer in layers:
         for n in layer["neurons"]:
             n["weights"] = [random.uniform(-1.0, 1.0) for _ in n["weights"]]
@@ -1345,79 +1383,394 @@ def randomize_weights(evt=None):
         rebuild_layer_eq_html(idx)
     redraw_arrows()
 
-def backpropagate(evt=None):
-    """One gradient-descent step of standard backprop, using the activations
-    captured by the most recent Test() call and the target values typed
-    into each output's "target y" box."""
-    if not last_test_layer_sources or not layers or not outputs:
-        print("Run Test at least once before backpropagating.")
+    loss_history = []
+    loss_plot_obj = all_plots.get("plot-loss")
+    if loss_plot_obj:
+        loss_plot_obj.reset()
+
+# ââ Dataset-based training (normalized internally; live mode untouched) âââââ
+
+def _col_stats(vals: list[float]) -> tuple[float, float]:
+    """(mean, std) over a single dataset column, std falling back to 1.0
+    whenever there's fewer than 2 points or zero spread."""
+    if len(vals) < 2:
+        return 0.0, 1.0
+    mean = sum(vals) / len(vals)
+    std = math.sqrt(sum((v - mean) ** 2 for v in vals) / len(vals)) or 1.0
+    return mean, std
+
+def _dataset_stats():
+    """(x_stats, y_stats): x_stats maps each CURRENT input id -> (mean, std)
+    over that column's values across training_data (missing values in a
+    point default to 0.0); y_stats does the same per output id."""
+    x_stats = {inp["id"]: _col_stats([p["xs"].get(inp["id"], 0.0) for p in training_data])
+               for inp in inputs}
+    y_stats = {out["id"]: _col_stats([p["ys"].get(out["id"], 0.0) for p in training_data])
+               for out in outputs}
+    return x_stats, y_stats
+
+def normalize_x(x, iid, x_stats):
+    x_mean, x_std = x_stats.get(iid, (0.0, 1.0))
+    return (x - x_mean) / x_std if normalize_enabled else x
+
+def normalize_y(y, oid, y_stats):
+    y_mean, y_std = y_stats.get(oid, (0.0, 1.0))
+    return (y - y_mean) / y_std if normalize_enabled else y
+
+MAX_GRAD_NORM = 5.0
+
+def _clip_grad(value: float) -> float:
+    if value > MAX_GRAD_NORM:
+        return MAX_GRAD_NORM
+    if value < -MAX_GRAD_NORM:
+        return -MAX_GRAD_NORM
+    return value
+
+def _unnormalize_weights(x_stats, y_stats):
+    """Fold the dataset's per-input/per-output normalization into the
+    network's stored weights/biases, converting them from the normalized
+    space used DURING training (see train()) into the raw space that
+    live/hardware forward() reads directly and unmodified. Without this, a
+    network trained on normalized data would predict wildly wrong raw
+    values in Play mode -- the whole point of training in normalized
+    space is gradient stability, not a permanent change of the model's
+    units.
+
+    Folding each input's x-scale into the first layer's matching weight is
+    exact for any activation function (it only rescales the pre-activation
+    input). Folding an output's y-scale into the matching last-layer
+    neuron's weights is only exact when the last layer's activation is
+    identity ("None") -- for a nonlinear final activation there is no
+    weight-only equivalent, so that step is skipped for that neuron and
+    live-mode output stays in normalized-ish units in that edge case.
+    A last-layer neuron beyond the current number of outputs has no
+    matching output stats and is left untouched (it isn't wired to
+    anything yet, per update_neuron_usage_state())."""
+    if not layers:
+        return
+    input_ids = [inp["id"] for inp in inputs]
+
+    first_layer = layers[0]
+    for n in first_layer["neurons"]:
+        old_weights = list(n["weights"])
+        bias_adjust = 0.0
+        new_weights = []
+        for i, w in enumerate(old_weights):
+            x_mean, x_std = x_stats.get(input_ids[i], (0.0, 1.0)) if i < len(input_ids) else (0.0, 1.0)
+            new_weights.append(w / x_std)
+            bias_adjust += w * x_mean / x_std
+        n["bias"] = n["bias"] - bias_adjust
+        n["weights"] = new_weights
+
+    last_layer = layers[-1]
+    if last_layer["act_fn"] in ("", None):
+        output_ids = [out["id"] for out in outputs]
+        for idx, n in enumerate(last_layer["neurons"]):
+            if idx >= len(output_ids):
+                continue
+            y_mean, y_std = y_stats.get(output_ids[idx], (0.0, 1.0))
+            n["bias"] = y_mean + y_std * n["bias"]
+            n["weights"] = [w * y_std for w in n["weights"]]
+
+def _renormalize_weights(x_stats, y_stats):
+    """Inverse of _unnormalize_weights(): converts the canonical raw-space
+    weights/biases into the normalized-space equivalents train_epoch()
+    expects, immediately before a training run. Must undo the two folds
+    in reverse order (last layer's y-fold, then the first layer's
+    x-fold) to exactly invert _unnormalize_weights()."""
+    if not layers:
         return
 
-    lr = get_learning_rate()
-    last_layer_neurons = layers[-1]["neurons"]
-
-    # 1. Seed deltas (dLoss/dPreActivation) at the output layer.
-    deltas = [0.0] * len(last_layer_neurons)
-    total_loss = 0.0
-    last_act_fn = layers[-1]["act_fn"]
-    last_custom = layers[-1]["custom_activation"]
-    for idx, out in enumerate(outputs):
-        if idx >= len(last_layer_neurons):
-            continue
-        n = last_layer_neurons[idx]
-        nid = n["id"]
-
-        target_el = get_id(f"target-out-{out['id']}")
-        try:
-            target = float(target_el.value) if target_el and target_el.value.strip() != "" else None
-        except ValueError:
-            target = None
-        if target is None:
-            continue
-
-        pred = neuron_post_values.get(nid, 0.0)
-        err = pred - target
-        total_loss += err ** 2
-        pre = neuron_pre_values.get(nid, 0.0)
-        deriv = apply_activation_derivative(pre, pred, last_act_fn, last_custom)
-        deltas[idx] = 2.0 * err * deriv
-
-    # 2. Walk backwards through the layers: update weights/biases, then
-    #    propagate deltas one layer further back via the chain rule.
-    for layer_idx in reversed(range(len(layers))):
-        layer = layers[layer_idx]
-        neurons = layer["neurons"]
-        sources = (last_test_layer_sources[layer_idx]
-                   if layer_idx < len(last_test_layer_sources) else [])
-        next_deltas = [0.0] * len(sources)
-
-        for i, n in enumerate(neurons):
-            d = deltas[i] if i < len(deltas) else 0.0
-            if d == 0.0:
+    last_layer = layers[-1]
+    if last_layer["act_fn"] in ("", None):
+        output_ids = [out["id"] for out in outputs]
+        for idx, n in enumerate(last_layer["neurons"]):
+            if idx >= len(output_ids):
                 continue
-            for j in range(min(len(n["weights"]), len(sources))):
-                next_deltas[j] += d * n["weights"][j]
-                n["weights"][j] -= lr * d * sources[j]
-            n["bias"] -= lr * d
+            y_mean, y_std = y_stats.get(output_ids[idx], (0.0, 1.0))
+            old_weights = list(n["weights"])
+            n["bias"] = (n["bias"] - y_mean) / y_std
+            n["weights"] = [w / y_std for w in old_weights]
 
-        if layer_idx > 0:
-            prev_layer = layers[layer_idx - 1]
-            prev_act_fn = prev_layer["act_fn"]
-            prev_custom = prev_layer["custom_activation"]
-            new_deltas = []
-            for i, pn in enumerate(prev_layer["neurons"]):
-                pre = neuron_pre_values.get(pn["id"], 0.0)
-                post = neuron_post_values.get(pn["id"], 0.0)
-                deriv = apply_activation_derivative(pre, post, prev_act_fn, prev_custom)
-                raw = next_deltas[i] if i < len(next_deltas) else 0.0
-                new_deltas.append(raw * deriv)
-            deltas = new_deltas
+    input_ids = [inp["id"] for inp in inputs]
+    first_layer = layers[0]
+    for n in first_layer["neurons"]:
+        old_weights = list(n["weights"])
+        bias_adjust = 0.0
+        new_weights = []
+        for i, w in enumerate(old_weights):
+            x_mean, x_std = x_stats.get(input_ids[i], (0.0, 1.0)) if i < len(input_ids) else (0.0, 1.0)
+            new_weights.append(w * x_std)
+            bias_adjust += w * x_mean
+        n["bias"] = n["bias"] + bias_adjust
+        n["weights"] = new_weights
 
-    # 3. Refresh the displayed weight/bias numbers in every layer.
+def train_epoch(lr: float, x_stats, y_stats) -> float:
+    """One pass over the whole dataset: accumulate gradients per point (and
+    per output, positionally paired with the last layer's neurons -- same
+    convention as compute_forward()), then apply one averaged update per
+    weight/bias. Returns the mean per-point-per-output loss. Assumes the
+    network's weights are already in normalized space (see train())."""
+    if not training_data or not layers or not outputs:
+        return 0.0
+
+    input_ids = [inp["id"] for inp in inputs]
+    output_ids = [out["id"] for out in outputs]
+    act_fns = [layer["act_fn"] for layer in layers]
+    customs = [layer["custom_activation"] for layer in layers]
+
+    weight_grads = [[[0.0] * len(n["weights"]) for n in layer["neurons"]] for layer in layers]
+    bias_grads = [[0.0 for _ in layer["neurons"]] for layer in layers]
+
+    last_layer_neurons = layers[-1]["neurons"]
+    total_loss = 0.0
+    loss_terms = 0
+
+    for point in training_data:
+        xs_n = [normalize_x(point["xs"].get(iid, 0.0), iid, x_stats) for iid in input_ids]
+
+        pre_store, post_store = {}, {}
+        final_values, layer_sources = propagate_layers(xs_n, pre_store, post_store)
+
+        deltas = [0.0] * len(last_layer_neurons)
+        for oidx, oid in enumerate(output_ids):
+            if oidx >= len(last_layer_neurons):
+                break
+            n = last_layer_neurons[oidx]
+            pred_n = final_values[oidx] if oidx < len(final_values) else 0.0
+            y_n = normalize_y(point["ys"].get(oid, 0.0), oid, y_stats)
+
+            err = pred_n - y_n
+            total_loss += err ** 2
+            loss_terms += 1
+
+            deriv = apply_activation_derivative(
+                pre_store.get(n["id"], 0.0), pred_n, act_fns[-1], customs[-1])
+            deltas[oidx] = 2.0 * err * deriv
+
+        for layer_idx in reversed(range(len(layers))):
+            layer = layers[layer_idx]
+            neurons = layer["neurons"]
+            sources = layer_sources[layer_idx] if layer_idx < len(layer_sources) else []
+            next_deltas = [0.0] * len(sources)
+
+            for i, n in enumerate(neurons):
+                d = deltas[i] if i < len(deltas) else 0.0
+                if d == 0.0:
+                    continue
+                for j in range(min(len(n["weights"]), len(sources))):
+                    next_deltas[j] += d * n["weights"][j]
+                    weight_grads[layer_idx][i][j] += d * sources[j]
+                bias_grads[layer_idx][i] += d
+
+            if layer_idx > 0:
+                prev_layer = layers[layer_idx - 1]
+                new_deltas = []
+                for i, pn in enumerate(prev_layer["neurons"]):
+                    pre = pre_store.get(pn["id"], 0.0)
+                    post = post_store.get(pn["id"], 0.0)
+                    deriv = apply_activation_derivative(pre, post, act_fns[layer_idx - 1], customs[layer_idx - 1])
+                    raw = next_deltas[i] if i < len(next_deltas) else 0.0
+                    new_deltas.append(raw * deriv)
+                deltas = new_deltas
+
+    n_points = len(training_data)
+    for layer_idx, layer in enumerate(layers):
+        for i, n in enumerate(layer["neurons"]):
+            for j in range(len(n["weights"])):
+                grad = _clip_grad(weight_grads[layer_idx][i][j] / n_points)
+                n["weights"][j] -= lr * grad
+            bgrad = _clip_grad(bias_grads[layer_idx][i] / n_points)
+            n["bias"] -= lr * bgrad
+
+    return total_loss / loss_terms if loss_terms else 0.0
+
+def _append_loss(loss: float):
+    loss_history.append(loss)
+    loss_plot_obj = all_plots.get("plot-loss")
+    if loss_plot_obj:
+        update = loss_plot_obj.add_point(loss)
+        loss_plot_obj.updatePlot(update)
+
+def train(epochs: int, lr: float):
+    if not training_data:
+        print("Add at least one data point before training.")
+        return
+
+    x_stats, y_stats = _dataset_stats()
+    if normalize_enabled:
+        _renormalize_weights(x_stats, y_stats)
+
+    for _ in range(epochs):
+        loss = train_epoch(lr, x_stats, y_stats)
+        _append_loss(loss)
+
+    if normalize_enabled:
+        _unnormalize_weights(x_stats, y_stats)
+
     for idx in range(len(layers)):
         rebuild_layer_eq_html(idx)
+    print(f"Trained {epochs} epoch(s), lr={lr}. Loss: {loss_history[-1] if loss_history else 0.0:.4f}")
 
-    print(f"Backprop step done (lr={lr}). Loss: {total_loss:.4f}")
+def train_step(evt=None):
+    train(epochs=1, lr=get_learning_rate())
+
+def train_30_epochs(evt=None):
+    train(epochs=30, lr=get_learning_rate())
+
+# ââ Dataset entry (Phase 1) âââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+def render_dataset_header():
+    container = get_id("dataset-header")
+    if not container:
+        return
+    html = ""
+    for inp in inputs:
+        html += f'<span class="dataset-row-header-x">{inp["name"]}</span>'
+    for idx, out in enumerate(outputs):
+        html += f'<span class="dataset-row-header-y">y{idx + 1}</span>'
+    html += "<span></span>"
+    container.innerHTML = html
+
+def render_dataset_table():
+    container = get_id("dataset-rows")
+    if not container:
+        return
+    html = ""
+    for p in training_data:
+        pid = p["id"]
+        html += f'<div class="dataset-row" data-id="{pid}">'
+        for inp in inputs:
+            iid = inp["id"]
+            val = p["xs"].get(iid, 0.0)
+            html += (f'<input type="number" step="any" class="dataset-num-input dataset-num-input-x" '
+                      f'id="point-x-{pid}-{iid}" value="{val}" />')
+        for out in outputs:
+            oid = out["id"]
+            val = p["ys"].get(oid, 0.0)
+            html += (f'<input type="number" step="any" class="dataset-num-input dataset-num-input-y" '
+                      f'id="point-y-{pid}-{oid}" value="{val}" />')
+        html += f'<button class="btn-remove-point" id="del-point-{pid}" title="Remove point">{delete_x_svg()}</button>'
+        html += "</div>"
+    container.innerHTML = html
+    for p in training_data:
+        bind_dataset_row_events(p["id"])
+
+def bind_dataset_row_events(pid: int):
+    for inp in inputs:
+        iid = inp["id"]
+        x_el = get_id(f"point-x-{pid}-{iid}")
+        if x_el:
+            def hx(evt, pid=pid, iid=iid):
+                p = next((pt for pt in training_data if pt["id"] == pid), None)
+                try:
+                    if p:
+                        p["xs"][iid] = float(evt.target.value)
+                        refresh_dataset_plot_points()
+                except (ValueError, TypeError):
+                    pass
+            x_el.addEventListener("input", create_proxy(hx))
+
+    for out in outputs:
+        oid = out["id"]
+        y_el = get_id(f"point-y-{pid}-{oid}")
+        if y_el:
+            def hy(evt, pid=pid, oid=oid):
+                p = next((pt for pt in training_data if pt["id"] == pid), None)
+                try:
+                    if p:
+                        p["ys"][oid] = float(evt.target.value)
+                        refresh_dataset_plot_points()
+                except (ValueError, TypeError):
+                    pass
+            y_el.addEventListener("input", create_proxy(hy))
+
+    del_btn = get_id(f"del-point-{pid}")
+    if del_btn:
+        del_btn.addEventListener("click", create_proxy(lambda evt, pid=pid: remove_data_point(pid)))
+
+def refresh_dataset_plot_points():
+    """Push each output's Data trace: y = that output's column, x = the
+    FIRST input's column (the fit graph's x-axis is fixed to it)."""
+    fit_plot_obj = all_plots.get("plot-fit")
+    if not fit_plot_obj or not inputs:
+        return
+    first_iid = inputs[0]["id"]
+    xs = [p["xs"].get(first_iid, 0.0) for p in training_data]
+    for out in outputs:
+        oid = out["id"]
+        ys = [p["ys"].get(oid, 0.0) for p in training_data]
+        fit_plot_obj.update_data_points(oid, xs, ys)
+
+def render_add_point_row():
+    container = get_id("dataset-add-row")
+    if not container:
+        return
+    html = ""
+    for inp in inputs:
+        iid = inp["id"]
+        html += (f'<input type="number" step="any" class="dataset-num-input dataset-num-input-x" '
+                  f'id="new-point-x-{iid}" placeholder="{inp["name"]}" />')
+    for idx, out in enumerate(outputs):
+        oid = out["id"]
+        html += (f'<input type="number" step="any" class="dataset-num-input dataset-num-input-y" '
+                  f'id="new-point-y-{oid}" placeholder="y{idx + 1}" />')
+    html += ('<button class="btn-add-point" id="add-point-btn" title="Add this point to the dataset">'
+             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
+             'stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>'
+             'Add point</button>')
+    container.innerHTML = html
+    btn = get_id("add-point-btn")
+    if btn:
+        btn.addEventListener("click", create_proxy(on_add_point_click))
+
+def add_data_point(xs: dict, ys: dict):
+    global data_point_counter
+    data_point_counter += 1
+    training_data.append({"id": data_point_counter, "xs": dict(xs), "ys": dict(ys)})
+    render_dataset_table()
+    refresh_dataset_plot_points()
+
+def remove_data_point(pid: int):
+    idx = next((i for i, p in enumerate(training_data) if p["id"] == pid), None)
+    if idx is None:
+        return
+    training_data.pop(idx)
+    render_dataset_table()
+    refresh_dataset_plot_points()
+
+def on_add_point_click(evt=None):
+    xs = {}
+    for inp in inputs:
+        iid = inp["id"]
+        el = get_id(f"new-point-x-{iid}")
+        try:
+            xs[iid] = float(el.value) if el and el.value.strip() != "" else None
+        except ValueError:
+            xs[iid] = None
+
+    ys = {}
+    for out in outputs:
+        oid = out["id"]
+        el = get_id(f"new-point-y-{oid}")
+        try:
+            ys[oid] = float(el.value) if el and el.value.strip() != "" else None
+        except ValueError:
+            ys[oid] = None
+
+    if any(v is None for v in xs.values()) or any(v is None for v in ys.values()):
+        print("Enter every x and y value before adding a point.")
+        return
+
+    add_data_point(xs, ys)
+    for inp in inputs:
+        el = get_id(f"new-point-x-{inp['id']}")
+        if el:
+            el.value = ""
+    for out in outputs:
+        el = get_id(f"new-point-y-{out['id']}")
+        if el:
+            el.value = ""
 
 def run_output(variable, dev_name, value):
     device = device_by_name(dev_name)
@@ -1671,13 +2024,19 @@ def _on_add_output(evt):
 def _on_randomize(evt):
     randomize_weights()
 
-@when("click", "#test-btn")
-def _on_test(evt):
-    test_network()
+@when("click", "#step-btn")
+def _on_step(evt):
+    train_step()
 
-@when("click", "#backprop-btn")
-def _on_backprop(evt):
-    backpropagate()
+@when("click", "#train30-btn")
+def _on_train30(evt):
+    train_30_epochs()
+
+@when("click", "#clear-fit-btn")
+def _on_clear_fit(evt):
+    fit_plot_obj = all_plots.get("plot-fit")
+    if fit_plot_obj:
+        fit_plot_obj.reset_run()
 
 @when("click", "#play-btn")
 def _on_play(evt):
@@ -1710,6 +2069,9 @@ def _on_debug_toggle(evt):
 def boot():
     get_id("loading-splash").style.display = "none"
     get_id("page-wrap").style.display = "flex"
+
+    all_plots["plot-fit"] = plot.fit_plot("plot-fit")
+    all_plots["plot-loss"] = plot.loss_plot("plot-loss")
 
     # one of each on load: 1 input, 1 layer (1 neuron + activation), 1 output
     add_input()
