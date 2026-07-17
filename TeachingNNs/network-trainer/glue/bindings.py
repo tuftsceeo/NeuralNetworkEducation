@@ -145,7 +145,7 @@ def bind_input_events(iid: int):
             sync.sync_var_labels()
         name_el.addEventListener("input", create_proxy(h))
 
-    _bind_node_events(iid, "in", on_input_device_change, on_input_channel_change,
+    _bind_node_events(iid, "input", on_input_device_change, on_input_channel_change,
                        network_actions.delete_input)
 
 def bind_neuron_events(lid: int, nid: int):
@@ -164,7 +164,7 @@ def bind_output_events(oid: int):
     out = network_model.output_by_id(oid)
     if not out:
         return
-    _bind_node_events(oid, "out", on_output_device_change, on_output_channel_change,
+    _bind_node_events(oid, "output", on_output_device_change, on_output_channel_change,
                        network_actions.delete_output)
 
 def bind_layer_static_events(layer: dict):
