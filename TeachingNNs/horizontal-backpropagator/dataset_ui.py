@@ -1,6 +1,6 @@
-"""Training-data table rendering/binding, plus the "randomize N points"
-control. Data mutation itself lives in network_model.py -- this file only
-renders/binds the table and re-renders after each mutation."""
+"""Training-data table rendering/binding. Data mutation itself lives in
+network_model.py -- this file only renders/binds the table and re-renders
+after each mutation."""
 from pyscript import document
 from pyscript.ffi import create_proxy
 
@@ -9,7 +9,6 @@ import network_model
 
 rows_el = state.get_id("dataset-rows")
 add_row_el = state.get_id("dataset-add-row")
-randomize_n_input = state.get_id("randomize-n-input")
 
 
 def render_table():
@@ -106,16 +105,5 @@ def on_add_point_click(evt=None):
     render_table()
     x_el.value = ""
     y_el.value = ""
-    import main
-    main.on_dataset_changed()
-
-
-def on_randomize_points_click(evt=None):
-    try:
-        n = int(randomize_n_input.value)
-    except (ValueError, AttributeError):
-        n = 8
-    network_model.randomize_points(n)
-    render_table()
     import main
     main.on_dataset_changed()

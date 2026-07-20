@@ -2,15 +2,18 @@
 "reveal plan" that the step machine walks through one layer at a time.
 
 The network is a strict chain of single-neuron layers: a0 = x (the raw
-input), and for layer i (1-indexed): pre_i = w_i * a_{i-1} + b_i,
-a_i = act_i(pre_i). The final layer's activation is the prediction.
+input), and for layer i (1-indexed): z_i = w_i * a_{i-1} + b_i,
+a_i = act_i(z_i). The final layer's activation is the prediction.
 
-Chain rule convention used throughout (and shown in the UI):
-    dL/dw_i = dL/da_i * da_i/dw_i
+Chain rule convention used throughout (and shown in the UI), split into the
+two stages the step machine reveals separately -- first the activation
+node, then the linear/weight node:
+    dL/dz_i = dL/da_i * da_i/dz_i     (revealed at the activation node)
+    dL/dw_i = dL/dz_i * dz_i/dw_i     (revealed at the linear/weight node)
 where dL/da_i ("grad_out") is the gradient flowing in from the layer
 immediately ahead of it (i+1, or the loss itself if i is the last layer),
-and da_i/dw_i is purely local to layer i (its own activation derivative
-times the value that fed it).
+da_i/dz_i ("act_deriv") is the activation function's own local slope, and
+dz_i/dw_i is simply the value that fed this layer (a_{i-1}).
 """
 import random
 
@@ -112,14 +115,16 @@ def compute_forward_cache() -> dict:
 def build_backward_plan() -> list[dict]:
     """Runs full backprop once (batch-averaged) using state.forward_cache,
     and returns one entry per layer ordered from the LAST layer to the
-    FIRST -- the order the step machine reveals them in.
+    FIRST -- the order the step machine reveals them in (each layer is
+    then shown in two sub-steps: activation, then linear/weight).
 
-    Each entry carries both the exact batch gradient (used to update the
-    weight) and a pedagogical grad_out/local pair whose product
-    approximates it (mean-of-per-point-grad_out times mean-of-per-point-
-    local) -- exact whenever the dataset has a single point, a close
-    approximation otherwise, and always shown alongside the formula it
-    illustrates rather than as the number actually used to step."""
+    Each entry carries both the exact batch gradients (grad_w/grad_b, used
+    to actually update the weight/bias) and the pedagogical per-stage
+    averages (avg_grad_out, avg_act_deriv, avg_delta, avg_source) whose
+    products approximate them -- exact whenever the dataset has a single
+    point, a close approximation otherwise, and always shown alongside the
+    formula they illustrate rather than as the number actually used to
+    step."""
     points = state.forward_cache["points"]
     n = len(points)
     L = len(state.layers)
@@ -139,7 +144,9 @@ def build_backward_plan() -> list[dict]:
         grad_w_sum = 0.0
         grad_b_sum = 0.0
         grad_out_sum = 0.0
-        local_sum = 0.0
+        act_deriv_sum = 0.0
+        delta_sum = 0.0
+        source_sum = 0.0
         next_grad_out_per_point = [0.0] * n
 
         for k, pt in enumerate(points):
@@ -154,14 +161,18 @@ def build_backward_plan() -> list[dict]:
             grad_b_sum += delta
 
             grad_out_sum += grad_out
-            local_sum += act_deriv * source
+            act_deriv_sum += act_deriv
+            delta_sum += delta
+            source_sum += source
 
             next_grad_out_per_point[k] = delta * layer["w"]
 
         grad_w = grad_w_sum / n
         grad_b = grad_b_sum / n
         avg_grad_out = grad_out_sum / n
-        avg_local = local_sum / n
+        avg_act_deriv = act_deriv_sum / n
+        avg_delta = delta_sum / n
+        avg_source = source_sum / n
 
         w_old, b_old = layer["w"], layer["b"]
         w_new = w_old - state.lr * grad_w
@@ -174,8 +185,10 @@ def build_backward_plan() -> list[dict]:
             "act": act,
             "grad_w": grad_w,
             "grad_b": grad_b,
-            "avg_grad_out": avg_grad_out,
-            "avg_local": avg_local,
+            "avg_grad_out": avg_grad_out,     # dL/da_i
+            "avg_act_deriv": avg_act_deriv,   # da_i/dz_i
+            "avg_delta": avg_delta,           # dL/dz_i (exact mean, not a product-of-means approx)
+            "avg_source": avg_source,         # dz_i/dw_i (the value that fed this layer)
             "w_old": w_old, "w_new": w_new,
             "b_old": b_old, "b_new": b_new,
         })
@@ -231,17 +244,4 @@ def remove_data_point(pid: int):
     if idx is None:
         return
     state.dataset.pop(idx)
-    reset_training()
-
-
-def randomize_points(n: int):
-    state.dataset = []
-    lo_x, hi_x = state.RANDOM_POINT_X_RANGE
-    lo_y, hi_y = state.RANDOM_POINT_Y_RANGE
-    for _ in range(max(0, n)):
-        state.dataset.append({
-            "id": state.next_data_id(),
-            "x": round(random.uniform(lo_x, hi_x), 2),
-            "y": round(random.uniform(lo_y, hi_y), 2),
-        })
     reset_training()

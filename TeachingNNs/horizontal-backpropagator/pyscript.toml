@@ -1,10 +1,10 @@
-[[fetch]]
-files = [
-    "./state.py",
-    "./activations.py",
-    "./network_model.py",
-    "./diagram_render.py",
-    "./dataset_ui.py",
-    "./plots.py",
-    "./training.py",
-]
+name = "Horizontal Backpropagator"
+
+[files]
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/state.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/activations.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/network_model.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/diagram_render.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/dataset_ui.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/plots.py" = ""
+"https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/training.py" = ""

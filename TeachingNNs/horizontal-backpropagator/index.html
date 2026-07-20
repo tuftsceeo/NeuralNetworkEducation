@@ -36,18 +36,23 @@
         </div>
 
         <div class="network-wrap" id="network-wrap">
-            <div class="net-diagram">
-                <div class="node-card input-node">x</div>
-                <div class="layers-track" id="layers-track"><!-- built by diagram_render.py --></div>
-                <div class="flow-arrow">→</div>
-                <div class="node-card output-node">
-                    ŷ
-                    <div class="output-readout" id="output-readout">L = –</div>
+            <div class="diagram-canvas" id="diagram-canvas">
+                <svg id="grad-arrow-svg" class="grad-arrow-svg" aria-hidden="true"></svg>
+                <div id="grad-label-layer" class="grad-label-layer"></div>
+
+                <div class="net-diagram">
+                    <div class="node-card input-node">x</div>
+                    <div class="layers-track" id="layers-track"><!-- built by diagram_render.py --></div>
+                    <div class="flow-arrow">→</div>
+                    <div class="node-card output-node" id="output-node-box">
+                        ŷ
+                        <div class="output-readout" id="output-readout">L = –</div>
+                    </div>
                 </div>
+                <button id="add-layer-btn" class="btn-add-layer" title="Add a layer (one neuron + its own activation function)">
+                    + Layer
+                </button>
             </div>
-            <button id="add-layer-btn" class="btn-add-layer" title="Add a layer (one neuron + its own activation function)">
-                + Layer
-            </button>
         </div>
 
         <div class="training-controls-row">
@@ -71,12 +76,6 @@
         <div class="card dataset-card">
             <div class="panel-header">
                 <span class="section-label">Training data</span>
-                <div class="randomize-points-control">
-                    <label class="n-label">n =
-                        <input type="number" id="randomize-n-input" class="eq-num-input tiny" value="8" min="1" step="1">
-                    </label>
-                    <button id="randomize-points-btn" class="btn-pill btn-small">🎲 Randomize</button>
-                </div>
             </div>
             <div class="dataset-table">
                 <div class="dataset-row dataset-row-header">
@@ -143,6 +142,6 @@
     </div>
 </div>
 
-<script type="py" src="./main.py" config="./pyscript.toml"></script>
+<script type="py" src="https://raw.githubusercontent.com/tuftsceeo/spike-neural-nets/refs/heads/main/TeachingNNs/horizontal-backpropagator/main.py" config="./pyscript.toml"></script>
 </body>
 </html>

@@ -1,7 +1,9 @@
 """Builds and updates the top network-diagram panel: the neuron chain, the
-weight badges on each connecting arrow, and the chain-rule labels that
-appear underneath a weight the moment its gradient is revealed."""
+linear/weight and activation nodes, and the curved gradient arrows (with
+their chain-rule labels) that appear under the diagram as backprop is
+revealed one node at a time."""
 import asyncio
+import math
 
 from pyscript import document
 from pyscript.ffi import create_proxy
@@ -11,21 +13,12 @@ import network_model
 
 layers_track_el = state.get_id("layers-track")
 output_readout_el = state.get_id("output-readout")
+diagram_canvas_el = state.get_id("diagram-canvas")
+grad_arrow_svg_el = state.get_id("grad-arrow-svg")
+grad_label_layer_el = state.get_id("grad-label-layer")
 
-# A small curved arrow icon, always drawn the same way: it starts near the
-# top right (where the neuron "ahead" of this weight sits, since gradients
-# flow backward from output to input) and curves down-left into the
-# chain-rule text below it -- a stylized stand-in for "this number came
-# from the layer ahead of you."
-CURVED_ARROW_SVG = (
-    '<svg class="curved-grad-arrow" width="30" height="22" viewBox="0 0 30 22" '
-    'fill="none" xmlns="http://www.w3.org/2000/svg">'
-    '<path d="M27 3 C 27 13, 18 17, 4 17" stroke="#7c3aed" stroke-width="2" '
-    'stroke-linecap="round" fill="none"/>'
-    '<path d="M4 17 L9 14.5 M4 17 L8 20" stroke="#7c3aed" stroke-width="2" '
-    'stroke-linecap="round"/>'
-    '</svg>'
-)
+SVG_NS = "http://www.w3.org/2000/svg"
+ARROW_COLOR = "#7c3aed"
 
 
 def make_el(tag, class_name=None, text=None, id_=None):
@@ -59,8 +52,11 @@ def build_diagram():
         conn_cell = make_el("div", "conn-cell")
         weight_badge = make_el("div", "weight-badge", id_=f"weight-badge-{lid}")
         conn_cell.appendChild(weight_badge)
-        conn_cell.appendChild(make_el("div", "chain-rule-slot", id_=f"chain-rule-{lid}"))
         layers_track_el.appendChild(conn_cell)
+
+        # The linear node's output feeds the activation function -- show
+        # that as its own arrow, not just adjacent boxes.
+        layers_track_el.appendChild(make_el("div", "flow-arrow", text="→"))
 
         neuron_box = make_el("div", "neuron-box", id_=f"neuron-box-{lid}")
 
@@ -95,7 +91,7 @@ def build_diagram():
         help_btn.addEventListener("click", create_proxy(open_act_help))
 
     render_weight_badges()
-    clear_chain_rule_slots()
+    clear_grad_markers()
     render_output_readout()
 
 
@@ -148,37 +144,168 @@ def render_output_readout():
         output_readout_el.textContent = "L = –"
 
 
-def clear_chain_rule_slots():
+def set_box_active(box_id, active):
+    box = state.get_id(box_id)
+    if box:
+        if active:
+            box.classList.add("active-highlight")
+        else:
+            box.classList.remove("active-highlight")
+
+
+def clear_all_highlights():
     for layer in state.layers:
-        slot = state.get_id(f"chain-rule-{layer['id']}")
-        if slot:
-            slot.innerHTML = ""
+        set_box_active(f"neuron-box-{layer['id']}", False)
+        set_box_active(f"weight-badge-{layer['id']}", False)
 
 
-def render_chain_rule(entry):
-    """Fills in the chain-rule label under the weight this plan entry
-    updated, and kicks off the grow-shrink pulse on its weight badge."""
+# ── Backward-reveal arrows + chain-rule labels ────────────────────────────
+#
+# Each revealed sub-step draws one curved arrow running from the BOTTOM
+# edge of the box the gradient just arrived from to the BOTTOM edge of the
+# box it's arriving at now, with its chain-rule formula centered under the
+# dip of that arrow -- not floating arbitrarily. Markers accumulate across
+# an epoch's reveal and are cleared together at the next forward pass.
+
+def marker_endpoints(plan_idx, is_activation):
+    """(source_box_id, target_box_id) for a given plan index/stage,
+    computed purely from plan order -- each arrow's source is always the
+    box the previous arrow in the backward walk pointed at."""
+    entry = state.plan[plan_idx]
+    lid = entry["layer_id"]
+    if is_activation:
+        target_id = f"neuron-box-{lid}"
+        if plan_idx == 0:
+            source_id = "output-node-box"
+        else:
+            prev_lid = state.plan[plan_idx - 1]["layer_id"]
+            source_id = f"weight-badge-{prev_lid}"
+    else:
+        source_id = f"neuron-box-{lid}"
+        target_id = f"weight-badge-{lid}"
+    return source_id, target_id
+
+
+def add_grad_marker(source_id, target_id, html):
+    state.grad_markers.append({"source_id": source_id, "target_id": target_id, "html": html})
+    redraw_grad_markers()
+
+
+def clear_grad_markers():
+    state.grad_markers = []
+    redraw_grad_markers()
+
+
+def _arrowhead_path_d(x2, y2, dx, dy, size=8.0):
+    mag = math.hypot(dx, dy)
+    if mag < 1e-6:
+        return None
+    ux, uy = dx / mag, dy / mag
+    spread = math.radians(28)
+    cs, sn = math.cos(spread), math.sin(spread)
+    wx1, wy1 = ux * cs - uy * sn, ux * sn + uy * cs
+    wx2, wy2 = ux * cs + uy * sn, -ux * sn + uy * cs
+    ax1, ay1 = x2 - size * wx1, y2 - size * wy1
+    ax2, ay2 = x2 - size * wx2, y2 - size * wy2
+    return f"M{x2:.1f},{y2:.1f} L{ax1:.1f},{ay1:.1f} M{x2:.1f},{y2:.1f} L{ax2:.1f},{ay2:.1f}"
+
+
+def _svg_path(d, stroke_width=2.0):
+    p = document.createElementNS(SVG_NS, "path")
+    p.setAttribute("d", d)
+    p.setAttribute("fill", "none")
+    p.setAttribute("stroke", ARROW_COLOR)
+    p.setAttribute("stroke-width", str(stroke_width))
+    p.setAttribute("stroke-linecap", "round")
+    return p
+
+
+def redraw_grad_markers():
+    """Recomputes every marker's arrow + label from the LIVE positions of
+    its source/target boxes. Safe to call any time (resize, new marker) --
+    it's a full clear-and-redraw, not an incremental patch."""
+    if grad_arrow_svg_el is None or grad_label_layer_el is None or diagram_canvas_el is None:
+        return
+    grad_arrow_svg_el.innerHTML = ""
+    grad_label_layer_el.innerHTML = ""
+    if not state.grad_markers:
+        return
+
+    canvas_rect = diagram_canvas_el.getBoundingClientRect()
+
+    for marker in state.grad_markers:
+        source_el = state.get_id(marker["source_id"])
+        target_el = state.get_id(marker["target_id"])
+        if source_el is None or target_el is None:
+            continue
+
+        sr = source_el.getBoundingClientRect()
+        tr = target_el.getBoundingClientRect()
+        x1 = sr.left - canvas_rect.left + sr.width / 2
+        y1 = sr.top - canvas_rect.top + sr.height
+        x2 = tr.left - canvas_rect.left + tr.width / 2
+        y2 = tr.top - canvas_rect.top + tr.height
+        dip = max(y1, y2) + 34
+
+        path_d = f"M{x1:.1f},{y1:.1f} Q{(x1 + x2) / 2:.1f},{dip:.1f} {x2:.1f},{y2:.1f}"
+        grad_arrow_svg_el.appendChild(_svg_path(path_d))
+
+        head_d = _arrowhead_path_d(x2, y2, x2 - (x1 + x2) / 2, y2 - dip)
+        if head_d:
+            grad_arrow_svg_el.appendChild(_svg_path(head_d))
+
+        label = make_el("div", "grad-label")
+        label.innerHTML = marker["html"]
+        label.style.left = f"{(x1 + x2) / 2:.1f}px"
+        label.style.top = f"{dip + 6:.1f}px"
+        grad_label_layer_el.appendChild(label)
+
+
+def render_activation_reveal(entry):
+    """Reveals the activation node's half of the chain rule:
+    dL/dz_i = dL/da_i * da_i/dz_i. Purely visual -- never mutates a
+    weight."""
     pos = entry["layer_pos"]
-    slot = state.get_id(f"chain-rule-{entry['layer_id']}")
-    if slot:
-        formula = f"dL/dw<sub>{pos}</sub> = dL/da<sub>{pos}</sub> · da<sub>{pos}</sub>/dw<sub>{pos}</sub>"
-        nums = (f"= {fmt(entry['avg_grad_out'])} · {fmt(entry['avg_local'])} "
-                f"≈ {fmt(entry['grad_w'])}")
-        bias_line = ""
-        if state.biases_enabled:
-            bias_line = (
-                f"<div class='chain-rule-formula'>dL/db<sub>{pos}</sub> = dL/da<sub>{pos}</sub> "
-                f"· da<sub>{pos}</sub>/db<sub>{pos}</sub></div>"
-                f"<div class='chain-rule-nums'>≈ {fmt(entry['grad_b'])}</div>"
-            )
-        slot.innerHTML = (
-            f"<div class='chain-rule-inner'>{CURVED_ARROW_SVG}"
-            f"<div class='chain-rule-body'>"
-            f"<div class='chain-rule-formula'>{formula}</div>"
-            f"<div class='chain-rule-nums'>{nums}</div>{bias_line}"
-            f"</div></div>"
+    formula = f"dL/dz<sub>{pos}</sub> = dL/da<sub>{pos}</sub> · da<sub>{pos}</sub>/dz<sub>{pos}</sub>"
+    nums = (f"= {fmt(entry['avg_grad_out'])} · {fmt(entry['avg_act_deriv'])} "
+            f"≈ {fmt(entry['avg_delta'])}")
+    html = (f"<div class='grad-label-formula'>{formula}</div>"
+            f"<div class='grad-label-nums'>{nums}</div>")
+
+    plan_idx = next(i for i, p in enumerate(state.plan) if p["layer_id"] == entry["layer_id"])
+    source_id, target_id = marker_endpoints(plan_idx, is_activation=True)
+    add_grad_marker(source_id, target_id, html)
+
+    clear_all_highlights()
+    set_box_active(target_id, True)
+
+
+def render_linear_reveal(entry):
+    """Reveals the linear/weight node's half of the chain rule:
+    dL/dw_i = dL/dz_i * dz_i/dw_i, and pulses the weight badge -- call
+    AFTER the caller has already applied the weight update to state.layers
+    (this function only ever renders, it never mutates)."""
+    pos = entry["layer_pos"]
+    formula = f"dL/dw<sub>{pos}</sub> = dL/dz<sub>{pos}</sub> · dz<sub>{pos}</sub>/dw<sub>{pos}</sub>"
+    nums = (f"= {fmt(entry['avg_delta'])} · {fmt(entry['avg_source'])} "
+            f"≈ {fmt(entry['grad_w'])}")
+    bias_line = ""
+    if state.biases_enabled:
+        bias_line = (
+            f"<div class='grad-label-formula'>dL/db<sub>{pos}</sub> = dL/dz<sub>{pos}</sub> "
+            f"· dz<sub>{pos}</sub>/db<sub>{pos}</sub></div>"
+            f"<div class='grad-label-nums'>≈ {fmt(entry['grad_b'])}</div>"
         )
+    html = (f"<div class='grad-label-formula'>{formula}</div>"
+            f"<div class='grad-label-nums'>{nums}</div>{bias_line}")
+
+    plan_idx = next(i for i, p in enumerate(state.plan) if p["layer_id"] == entry["layer_id"])
+    source_id, target_id = marker_endpoints(plan_idx, is_activation=False)
+    add_grad_marker(source_id, target_id, html)
+
     render_weight_badges()
+    clear_all_highlights()
+    set_box_active(target_id, True)
     asyncio.ensure_future(pulse_weight(entry["layer_id"]))
 
 
@@ -192,15 +319,6 @@ async def pulse_weight(lid):
     badge.classList.add("weight-pulse")
     await asyncio.sleep(PULSE_DURATION)
     badge.classList.remove("weight-pulse")
-
-
-def highlight_layer(lid, active: bool):
-    box = state.get_id(f"neuron-box-{lid}")
-    if box:
-        if active:
-            box.classList.add("neuron-active")
-        else:
-            box.classList.remove("neuron-active")
 
 
 # ── Activation help popover ───────────────────────────────────────────────

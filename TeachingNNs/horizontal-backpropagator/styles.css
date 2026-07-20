@@ -48,8 +48,7 @@
 }
 
 html, body {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
     background: var(--page-bg);
     color: var(--text-primary);
     font-family: var(--font-ui);
@@ -58,7 +57,10 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
-body { padding: 10px; }
+/* The layout below is sized to fit one screen, but if it doesn't (a tall
+   diagram, a long dataset, a small window) the page scrolls instead of
+   clipping content. */
+body { padding: 10px; overflow-y: auto; overflow-x: hidden; }
 
 .hidden { display: none !important; }
 
@@ -80,10 +82,10 @@ body { padding: 10px; }
 }
 .loading-label { font-size: 13px; color: var(--text-muted); }
 
-/* ── Page layout: everything fits in the viewport, no page scroll ── */
+/* ── Page layout: sized to fit one screen; the page scrolls if it can't ── */
 .page-wrap {
     width: 100%;
-    height: calc(100vh - 20px);
+    min-height: calc(100vh - 20px);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -194,26 +196,90 @@ body { padding: 10px; }
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     transition: transform 0.18s;
 }
-.biases-toggle input:checked + .toggle-track { background: var(--purple); }
+.biases-toggle input:checked + .toggle-track { background: var(--orange-dark); }
 .biases-toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(14px); }
 
-/* ── Network diagram ───────────────────────────────────────────── */
+/* ── Network diagram ───────────────────────────────────────────────────
+   .network-wrap scrolls horizontally once the chain gets wider than the
+   panel, instead of wrapping onto a second line (which would grow the
+   page vertically instead). .diagram-canvas is the positioned ancestor
+   the gradient-arrow SVG and floating labels are anchored to -- since
+   it's the thing that scrolls, the arrows/labels scroll right along with
+   the boxes they're attached to. ─────────────────────────────────────── */
 .network-wrap {
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 14px;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    overflow-y: visible;
     padding: 6px 8px;
     min-height: 108px;
+}
+
+.diagram-canvas {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    padding-bottom: 76px;
+    margin: 0 auto;
+}
+
+.grad-arrow-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 1;
+}
+
+.grad-label-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.grad-label {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+    background: rgba(255,255,255,0.92);
+    border-radius: 8px;
+    padding: 2px 6px;
+    animation: row-in 0.2s ease;
+    white-space: nowrap;
+}
+
+.grad-label-formula {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--purple);
+    white-space: nowrap;
+}
+
+.grad-label-nums {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .net-diagram {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    position: relative;
+    z-index: 3;
 }
 
 .node-card {
@@ -249,7 +315,8 @@ body { padding: 10px; }
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
 .conn-cell {
@@ -285,44 +352,9 @@ body { padding: 10px; }
     animation: weight-pulse-anim 0.45s ease;
 }
 
-.chain-rule-slot {
-    min-height: 4px;
-}
-
-.chain-rule-inner {
-    display: flex;
-    align-items: flex-start;
-    gap: 2px;
-    animation: row-in 0.25s ease;
-}
-
 @keyframes row-in {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
-}
-
-.curved-grad-arrow { flex-shrink: 0; margin-top: -4px; }
-
-.chain-rule-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
-
-.chain-rule-formula {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--purple);
-    white-space: nowrap;
-}
-
-.chain-rule-nums {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    white-space: nowrap;
 }
 
 /* Activation box: purple, matching the network-trainer's act-box. */
@@ -340,8 +372,9 @@ body { padding: 10px; }
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.neuron-box.neuron-active {
-    border-color: var(--amber);
+.weight-badge.active-highlight,
+.neuron-box.active-highlight {
+    border-color: var(--amber) !important;
     box-shadow: 0 0 0 4px rgba(217,119,6,0.16);
 }
 
@@ -414,16 +447,16 @@ body { padding: 10px; }
     gap: 6px;
     padding: 8px 16px;
     border-radius: 99px;
-    border: 2px dashed var(--purple-mid);
-    background: var(--purple-light);
-    color: var(--purple);
+    border: 2px dashed var(--amber-mid);
+    background: var(--amber-light);
+    color: var(--amber);
     font-family: var(--font-ui);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
 }
-.btn-add-layer:hover  { background: #ddd6fe; border-color: var(--purple); }
+.btn-add-layer:hover  { background: var(--amber-mid); border-color: var(--amber); }
 .btn-add-layer:active { transform: scale(0.97); }
 
 .w-color { color: var(--teal-dark) !important; }
@@ -522,21 +555,6 @@ body { padding: 10px; }
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 6px;
-}
-
-.randomize-points-control {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.n-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-secondary);
 }
 
 .dataset-table {
@@ -747,8 +765,6 @@ body { padding: 10px; }
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 960px) {
-    html, body { overflow: auto; height: auto; }
-    .page-wrap { height: auto; }
     .bottom-row { flex-direction: column; min-height: 0; }
     .dataset-card { flex: 1 1 auto; max-height: 260px; }
     .plot-card { min-height: 240px; }

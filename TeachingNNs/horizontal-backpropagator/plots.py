@@ -47,7 +47,15 @@ def init_fit_plot():
         "yaxis": {"zeroline": True},
     }
     Plotly.newPlot(fit_plot_el, to_js([data_trace, curve_trace]), to_js(layout),
-                    to_js({"responsive": True, "displayModeBar": False}))
+                    to_js({"responsive": True}))
+
+
+def _rescale_fit_axes():
+    """Plotly.restyle() alone doesn't always re-fit the axes to newly
+    changed data -- once an axis has rendered, its range can stay "stuck"
+    at the old extent. Force both axes to recompute so a newly added point
+    outside the current view is actually visible."""
+    Plotly.relayout(fit_plot_el, to_js({"xaxis.autorange": True, "yaxis.autorange": True}))
 
 
 def update_fit_data():
@@ -56,11 +64,13 @@ def update_fit_data():
         to_js({"x": [[p["x"] for p in state.dataset]], "y": [[p["y"] for p in state.dataset]]}),
         to_js([0]),
     )
+    _rescale_fit_axes()
 
 
 def update_fit_curve():
     xs, ys = _curve_points()
     Plotly.restyle(fit_plot_el, to_js({"x": [xs], "y": [ys]}), to_js([1]))
+    _rescale_fit_axes()
 
 
 def init_loss_plot():
@@ -76,7 +86,7 @@ def init_loss_plot():
     trace = {"x": [], "y": [], "mode": "lines+markers", "line": {"color": "#d97706", "width": 2},
               "marker": {"size": 5}}
     Plotly.newPlot(loss_plot_el, to_js([trace]), to_js(layout),
-                    to_js({"responsive": True, "displayModeBar": False}))
+                    to_js({"responsive": True}))
 
 
 def update_loss_plot():

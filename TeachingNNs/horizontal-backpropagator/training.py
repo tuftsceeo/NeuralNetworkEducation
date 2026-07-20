@@ -1,6 +1,7 @@
-"""The step machine: forward pass -> one backward-reveal step per layer
-(right to left) -> epoch complete. Mirrors gradient-descent-visualization's
-do_step()/run_epoch()/play_loop() pattern, generalized to N layers."""
+"""The step machine: forward pass -> two backward-reveal sub-steps per
+layer (activation, then linear/weight; right to left) -> epoch complete.
+Mirrors gradient-descent-visualization's do_step()/run_epoch()/play_loop()
+pattern, generalized to N layers and to two chain-rule stages per layer."""
 import asyncio
 
 import state
@@ -25,9 +26,8 @@ def update_back_button_states():
     back_epoch_btn.disabled = not can_go_back
 
 
-def _clear_all_highlights():
-    for layer in state.layers:
-        diagram_render.highlight_layer(layer["id"], False)
+def _total_substeps() -> int:
+    return 2 * len(state.plan)
 
 
 def do_step():
@@ -37,18 +37,23 @@ def do_step():
     if state.step_index == 0:
         state.forward_cache = network_model.compute_forward_cache()
         state.plan = network_model.build_backward_plan()
-        diagram_render.clear_chain_rule_slots()
+        diagram_render.clear_grad_markers()
+        diagram_render.clear_all_highlights()
         diagram_render.render_output_readout()
-        _clear_all_highlights()
         state.step_index = 1
     else:
-        entry = network_model.apply_plan_step(state.step_index)
-        diagram_render.render_chain_rule(entry)
-        _clear_all_highlights()
-        diagram_render.highlight_layer(entry["layer_id"], True)
-        plots.update_fit_curve()
+        plan_idx = (state.step_index - 1) // 2
+        entry = state.plan[plan_idx]
+        is_activation = state.step_index % 2 == 1
 
-        if state.step_index >= len(state.plan):
+        if is_activation:
+            diagram_render.render_activation_reveal(entry)
+        else:
+            network_model.apply_plan_step(plan_idx + 1)
+            diagram_render.render_linear_reveal(entry)
+            plots.update_fit_curve()
+
+        if state.step_index >= _total_substeps():
             state.loss_history.append((state.epoch, state.forward_cache["mean_loss"]))
             plots.update_loss_plot()
             state.epoch += 1
@@ -71,7 +76,7 @@ def run_epoch():
 def run_epoch_turbo():
     """Used while Play is running: does the whole epoch's math and applies
     every layer's update in one shot, rendering the result once instead of
-    once per layer -- faster and less visually busy than stepping."""
+    once per sub-step -- faster and less visually busy than stepping."""
     if not ensure_initialized():
         return
 
@@ -80,7 +85,8 @@ def run_epoch_turbo():
     for i in range(1, len(state.plan) + 1):
         network_model.apply_plan_step(i)
 
-    diagram_render.clear_chain_rule_slots()
+    diagram_render.clear_grad_markers()
+    diagram_render.clear_all_highlights()
     diagram_render.render_output_readout()
     diagram_render.render_weight_badges()
     plots.update_fit_curve()
@@ -94,21 +100,32 @@ def run_epoch_turbo():
     update_back_button_states()
 
 
+def _replay_revealed_substeps():
+    """Rebuilds every arrow/label/highlight up through the CURRENT
+    step_index -- used after restoring a snapshot, since the snapshot only
+    carries raw state, not the visual markers."""
+    diagram_render.clear_grad_markers()
+    diagram_render.clear_all_highlights()
+    if not state.plan or state.step_index < 1:
+        return
+    for s in range(1, state.step_index + 1):
+        plan_idx = (s - 1) // 2
+        entry = state.plan[plan_idx]
+        if s % 2 == 1:
+            diagram_render.render_activation_reveal(entry)
+        else:
+            diagram_render.render_linear_reveal(entry)
+
+
 def do_backward_step():
     if len(state.history) <= 1:
         return
     state.history.pop()
     snap = state.history[-1]
     network_model.restore_snapshot(snap)
-    _clear_all_highlights()
     diagram_render.render_weight_badges()
     diagram_render.render_output_readout()
-    diagram_render.clear_chain_rule_slots()
-    if state.plan and 1 <= state.step_index <= len(state.plan):
-        for i in range(1, state.step_index + 1):
-            entry = state.plan[i - 1]
-            diagram_render.render_chain_rule(entry)
-        diagram_render.highlight_layer(state.plan[state.step_index - 1]["layer_id"], True)
+    _replay_revealed_substeps()
     plots.update_fit_curve()
     plots.update_loss_plot()
     update_back_button_states()
@@ -124,7 +141,7 @@ def backward_epoch():
 
 # ── Play / Pause ────────────────────────────────────────────────────────
 
-PLAY_DELAY = 0.05
+PLAY_DELAY = 0.01
 _play_task = None
 
 

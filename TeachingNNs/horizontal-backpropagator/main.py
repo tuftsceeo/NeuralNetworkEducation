@@ -14,7 +14,6 @@ add_layer_btn = state.get_id("add-layer-btn")
 randomize_weights_btn = state.get_id("randomize-weights-btn")
 biases_toggle = state.get_id("biases-toggle")
 lr_input = state.get_id("lr-input")
-randomize_points_btn = state.get_id("randomize-points-btn")
 
 step_btn = state.get_id("step-btn")
 epoch_btn = state.get_id("epoch-btn")
@@ -45,13 +44,13 @@ def on_topology_changed():
 
 def on_weight_change():
     diagram_render.render_weight_badges()
-    diagram_render.clear_chain_rule_slots()
+    diagram_render.clear_grad_markers()
     diagram_render.render_output_readout()
     refresh_plots_and_controls()
 
 
 def on_dataset_changed():
-    diagram_render.clear_chain_rule_slots()
+    diagram_render.clear_grad_markers()
     diagram_render.render_output_readout()
     refresh_plots_and_controls()
 
@@ -109,7 +108,6 @@ def wire_events():
     randomize_weights_btn.addEventListener("click", create_proxy(on_randomize_weights_click))
     biases_toggle.addEventListener("change", create_proxy(on_biases_toggle_change))
     lr_input.addEventListener("input", create_proxy(on_lr_input_change))
-    randomize_points_btn.addEventListener("click", create_proxy(dataset_ui.on_randomize_points_click))
 
     step_btn.addEventListener("click", create_proxy(training.on_step_click))
     epoch_btn.addEventListener("click", create_proxy(training.on_epoch_click))
@@ -119,7 +117,11 @@ def wire_events():
     reset_btn.addEventListener("click", create_proxy(on_reset_click))
     close_act_help_btn.addEventListener("click", create_proxy(diagram_render.close_act_help))
 
-    window_resize_proxy = create_proxy(lambda e: plots.resize_plots())
+    def _on_resize(evt=None):
+        plots.resize_plots()
+        diagram_render.redraw_grad_markers()
+
+    window_resize_proxy = create_proxy(_on_resize)
     from js import window
     window.addEventListener("resize", window_resize_proxy)
 

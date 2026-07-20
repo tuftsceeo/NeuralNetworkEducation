@@ -28,10 +28,12 @@ ACTIVATION_OPTIONS = [
 ]
 
 # ── Training state machine ───────────────────────────────────────────────
-# step_index 0 == ready to run a forward pass. step_index k (1..len(layers))
-# means the backward reveal has been applied through plan[k-1] (plan is
-# ordered from the LAST layer to the FIRST, since backprop runs right to
-# left). step_index wraps back to 0 once every layer's update is revealed.
+# step_index 0 == ready to run a forward pass. Every layer reveals in TWO
+# sub-steps -- first the activation node (dL/dz_i = dL/da_i * da_i/dz_i),
+# then the linear/weight node (dL/dw_i = dL/dz_i * dz_i/dw_i) -- so
+# step_index runs 1..2*len(layers), plan is still one entry per LAYER
+# (ordered from the LAST layer to the FIRST), and substep s belongs to
+# plan[(s-1)//2] with odd s = activation, even s = linear/weight.
 epoch = 0
 step_index = 0
 plan: list[dict] = []          # this epoch's full backward plan, computed once at step 0
@@ -40,12 +42,14 @@ loss_history: list[tuple[int, float]] = []
 initialized = False
 playing = False
 
+# Backward-gradient arrows currently drawn under the diagram, cleared at
+# the start of every forward pass. Each entry: {"source_id", "target_id", "html"}.
+grad_markers: list[dict] = []
+
 # Snapshot stack for backward step/epoch (see network_model.take_snapshot).
 history: list[dict] = []
 
 INIT_WEIGHT_RANGE = (-1.0, 1.0)
-RANDOM_POINT_X_RANGE = (-3.0, 3.0)
-RANDOM_POINT_Y_RANGE = (-3.0, 3.0)
 
 
 def get_id(id_: str):
