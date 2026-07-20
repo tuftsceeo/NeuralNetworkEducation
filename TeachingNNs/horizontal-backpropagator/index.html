@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizontal Backpropagator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://pyscript.net/releases/2026.3.1/core.css">
+<script type="module" src="https://pyscript.net/releases/2026.3.1/core.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body>
+<div id="loading-splash" class="loading-splash">
+    <div class="loading-orb"></div>
+    <div class="loading-label">Loading backpropagator…</div>
+</div>
+
+<div id="app" class="page-wrap hidden">
+
+    <!-- ── Top panel: full-width network diagram ─────────────────────── -->
+    <div class="card top-panel">
+        <div class="top-panel-header">
+            <div class="section-label">Network</div>
+            <div class="top-panel-controls">
+                <label class="biases-toggle" title="Include a bias term on every neuron">
+                    <input type="checkbox" id="biases-toggle">
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-label">Biases</span>
+                </label>
+                <label class="lr-control" title="Step size used by Step / Run epoch / Play">
+                    <span class="lr-label">Learning rate</span>
+                    <input type="number" id="lr-input" class="eq-num-input wide" value="0.1" step="0.01" min="0.001">
+                </label>
+                <button id="randomize-weights-btn" class="btn-pill">🎲 Randomize weights</button>
+            </div>
+        </div>
+
+        <div class="network-wrap" id="network-wrap">
+            <div class="net-diagram">
+                <div class="node-card input-node">x</div>
+                <div class="flow-arrow">→</div>
+                <div class="layers-track" id="layers-track"><!-- built by diagram_render.py --></div>
+                <div class="flow-arrow">→</div>
+                <div class="node-card output-node">
+                    ŷ
+                    <div class="output-readout" id="output-readout">L = –</div>
+                </div>
+            </div>
+            <button id="add-layer-btn" class="btn-add-layer" title="Add a layer (one neuron + its own activation function)">
+                + Layer
+            </button>
+        </div>
+
+        <div class="training-controls-row">
+            <div class="play-controls">
+                <button id="back-epoch-btn" class="btn-flow-control btn-back" title="Back an Epoch">‹‹</button>
+                <button id="back-step-btn" class="btn-flow-control btn-back" title="Back a Step">‹</button>
+                <button id="step-btn" class="btn-flow-control" title="Step">›</button>
+                <button id="epoch-btn" class="btn-flow-control" title="Run Epoch">››</button>
+                <button id="play-pause-btn" class="btn-flow-control btn-play" title="Play">▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Bottom half: data table + fit plot (left) | loss plot (right) ── -->
+    <div class="bottom-row">
+
+        <div class="bottom-left-col">
+            <div class="card dataset-card">
+                <div class="panel-header">
+                    <span class="section-label">Training data</span>
+                    <div class="randomize-points-control">
+                        <input type="number" id="randomize-n-input" class="eq-num-input tiny" value="8" min="1" step="1">
+                        <button id="randomize-points-btn" class="btn-pill btn-small">🎲 Randomize points</button>
+                    </div>
+                </div>
+                <div class="dataset-table">
+                    <div class="dataset-row dataset-row-header">
+                        <span>x</span><span>y</span><span></span>
+                    </div>
+                    <div class="dataset-rows" id="dataset-rows"></div>
+                </div>
+                <div class="dataset-add-row" id="dataset-add-row"></div>
+            </div>
+
+            <div class="card plot-card">
+                <h3>Current fit</h3>
+                <div id="fit-plot"></div>
+            </div>
+        </div>
+
+        <div class="bottom-right-col">
+            <div class="card plot-card">
+                <h3>Loss</h3>
+                <div id="loss-plot"></div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<script type="py" src="./main.py" config="./pyscript.toml"></script>
+</body>
+</html>

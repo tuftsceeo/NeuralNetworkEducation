@@ -1,0 +1,10 @@
+[[fetch]]
+files = [
+    "./state.py",
+    "./activations.py",
+    "./network_model.py",
+    "./diagram_render.py",
+    "./dataset_ui.py",
+    "./plots.py",
+    "./training.py",
+]
