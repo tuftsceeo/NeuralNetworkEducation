@@ -199,6 +199,7 @@ def stop_playing():
 
 
 def on_play_pause_click(evt=None):
+    print("clicked")
     if state.playing:
         stop_playing()
     else:
