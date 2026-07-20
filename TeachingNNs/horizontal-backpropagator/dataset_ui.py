@@ -22,7 +22,7 @@ def render_table():
         x_input = document.createElement("input")
         x_input.type = "number"
         x_input.step = "any"
-        x_input.className = "dataset-num-input"
+        x_input.className = "dataset-num-input dataset-num-input-x"
         x_input.value = str(p["x"])
         x_input.addEventListener("input", create_proxy(lambda evt, pid=pid: _on_edit(pid, "x", evt.target.value)))
         row.appendChild(x_input)
@@ -30,7 +30,7 @@ def render_table():
         y_input = document.createElement("input")
         y_input.type = "number"
         y_input.step = "any"
-        y_input.className = "dataset-num-input"
+        y_input.className = "dataset-num-input dataset-num-input-y"
         y_input.value = str(p["y"])
         y_input.addEventListener("input", create_proxy(lambda evt, pid=pid: _on_edit(pid, "y", evt.target.value)))
         row.appendChild(y_input)
@@ -72,7 +72,7 @@ def render_add_row():
     x_input = document.createElement("input")
     x_input.type = "number"
     x_input.step = "any"
-    x_input.className = "dataset-num-input"
+    x_input.className = "dataset-num-input dataset-num-input-x"
     x_input.id = "new-point-x"
     x_input.placeholder = "x"
     add_row_el.appendChild(x_input)
@@ -80,7 +80,7 @@ def render_add_row():
     y_input = document.createElement("input")
     y_input.type = "number"
     y_input.step = "any"
-    y_input.className = "dataset-num-input"
+    y_input.className = "dataset-num-input dataset-num-input-y"
     y_input.id = "new-point-y"
     y_input.placeholder = "y"
     add_row_el.appendChild(y_input)

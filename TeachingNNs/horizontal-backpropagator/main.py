@@ -21,6 +21,8 @@ epoch_btn = state.get_id("epoch-btn")
 back_step_btn = state.get_id("back-step-btn")
 back_epoch_btn = state.get_id("back-epoch-btn")
 play_pause_btn = state.get_id("play-pause-btn")
+reset_btn = state.get_id("reset-btn")
+close_act_help_btn = state.get_id("close-act-help-btn")
 
 
 def _ready() -> bool:
@@ -84,6 +86,16 @@ def on_lr_input_change(evt=None):
         pass
 
 
+def on_reset_click(evt=None):
+    """Same effect as Randomize weights, surfaced again next to Play so
+    a learner mid-epoch can restart the whole run without reaching for
+    the top-panel controls."""
+    if state.playing:
+        training.stop_playing()
+    network_model.randomize_weights()
+    on_weight_change()
+
+
 # ── Boot ────────────────────────────────────────────────────────────────────
 
 def seed_defaults():
@@ -104,6 +116,8 @@ def wire_events():
     back_step_btn.addEventListener("click", create_proxy(training.on_back_step_click))
     back_epoch_btn.addEventListener("click", create_proxy(training.on_back_epoch_click))
     play_pause_btn.addEventListener("click", create_proxy(training.on_play_pause_click))
+    reset_btn.addEventListener("click", create_proxy(on_reset_click))
+    close_act_help_btn.addEventListener("click", create_proxy(diagram_render.close_act_help))
 
     window_resize_proxy = create_proxy(lambda e: plots.resize_plots())
     from js import window

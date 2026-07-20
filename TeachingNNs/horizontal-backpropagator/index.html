@@ -38,7 +38,6 @@
         <div class="network-wrap" id="network-wrap">
             <div class="net-diagram">
                 <div class="node-card input-node">x</div>
-                <div class="flow-arrow">→</div>
                 <div class="layers-track" id="layers-track"><!-- built by diagram_render.py --></div>
                 <div class="flow-arrow">→</div>
                 <div class="node-card output-node">
@@ -52,53 +51,98 @@
         </div>
 
         <div class="training-controls-row">
+            <div class="controls-spacer"></div>
             <div class="play-controls">
                 <button id="back-epoch-btn" class="btn-flow-control btn-back" title="Back an Epoch">‹‹</button>
                 <button id="back-step-btn" class="btn-flow-control btn-back" title="Back a Step">‹</button>
                 <button id="step-btn" class="btn-flow-control" title="Step">›</button>
                 <button id="epoch-btn" class="btn-flow-control" title="Run Epoch">››</button>
+            </div>
+            <div class="play-reset-group">
+                <button id="reset-btn" class="btn-flow-control btn-reset" title="Reset">⟲</button>
                 <button id="play-pause-btn" class="btn-flow-control btn-play" title="Play">▶</button>
             </div>
         </div>
     </div>
 
-    <!-- ── Bottom half: data table + fit plot (left) | loss plot (right) ── -->
+    <!-- ── Bottom half: data table | current fit | loss, side by side ──── -->
     <div class="bottom-row">
 
-        <div class="bottom-left-col">
-            <div class="card dataset-card">
-                <div class="panel-header">
-                    <span class="section-label">Training data</span>
-                    <div class="randomize-points-control">
+        <div class="card dataset-card">
+            <div class="panel-header">
+                <span class="section-label">Training data</span>
+                <div class="randomize-points-control">
+                    <label class="n-label">n =
                         <input type="number" id="randomize-n-input" class="eq-num-input tiny" value="8" min="1" step="1">
-                        <button id="randomize-points-btn" class="btn-pill btn-small">🎲 Randomize points</button>
-                    </div>
+                    </label>
+                    <button id="randomize-points-btn" class="btn-pill btn-small">🎲 Randomize</button>
                 </div>
-                <div class="dataset-table">
-                    <div class="dataset-row dataset-row-header">
-                        <span>x</span><span>y</span><span></span>
-                    </div>
-                    <div class="dataset-rows" id="dataset-rows"></div>
+            </div>
+            <div class="dataset-table">
+                <div class="dataset-row dataset-row-header">
+                    <span class="dataset-row-header-x">x</span><span class="dataset-row-header-y">y</span><span></span>
                 </div>
-                <div class="dataset-add-row" id="dataset-add-row"></div>
+                <div class="dataset-rows" id="dataset-rows"></div>
             </div>
-
-            <div class="card plot-card">
-                <h3>Current fit</h3>
-                <div id="fit-plot"></div>
-            </div>
+            <div class="dataset-add-row" id="dataset-add-row"></div>
         </div>
 
-        <div class="bottom-right-col">
-            <div class="card plot-card">
-                <h3>Loss</h3>
-                <div id="loss-plot"></div>
-            </div>
+        <div class="card plot-card">
+            <h3>Current fit</h3>
+            <div id="fit-plot"></div>
+        </div>
+
+        <div class="card plot-card">
+            <h3>Loss</h3>
+            <div id="loss-plot"></div>
         </div>
 
     </div>
 
 </div>
+
+<!-- ── Activation help popover ───────────────────────────────── -->
+<div id="act-help-popover" class="act-help-popover hidden">
+    <div class="act-help-inner">
+        <div class="act-help-header">
+            <span class="act-help-title">Activation functions</span>
+            <button class="btn-icon" id="close-act-help-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <p class="act-help-intro">
+            An activation function is applied to a neuron's weighted output before it becomes
+            usable downstream. It introduces non-linearity so the network can learn
+            complex patterns.
+        </p>
+        <div class="act-help-list">
+            <div class="act-help-item">
+                <span class="act-help-name">None</span>
+                <span class="act-help-desc">No transformation. Output passes through unchanged (identity).</span>
+            </div>
+            <div class="act-help-item">
+                <span class="act-help-name">ReLU</span>
+                <span class="act-help-desc">Sets negative values to zero. Fast and widely used in deep learning.</span>
+            </div>
+            <div class="act-help-item">
+                <span class="act-help-name">Sigmoid</span>
+                <span class="act-help-desc">Squashes output to (0, 1). Good for probability outputs.</span>
+            </div>
+            <div class="act-help-item">
+                <span class="act-help-name">Tanh</span>
+                <span class="act-help-desc">Squashes output to (−1, 1). Zero-centred, often better than Sigmoid.</span>
+            </div>
+            <div class="act-help-item">
+                <span class="act-help-name">Softplus</span>
+                <span class="act-help-desc">Smooth approximation of ReLU. Always positive with no hard zero.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="py" src="./main.py" config="./pyscript.toml"></script>
 </body>
 </html>

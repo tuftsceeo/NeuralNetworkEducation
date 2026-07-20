@@ -8,7 +8,6 @@ from pyscript.ffi import create_proxy
 
 import state
 import network_model
-from activations import ACTIVATION_SYMBOL
 
 layers_track_el = state.get_id("layers-track")
 output_readout_el = state.get_id("output-readout")
@@ -64,7 +63,13 @@ def build_diagram():
         layers_track_el.appendChild(conn_cell)
 
         neuron_box = make_el("div", "neuron-box", id_=f"neuron-box-{lid}")
-        neuron_box.appendChild(make_el("div", "neuron-title", text=f"n{pos}"))
+
+        title_row = make_el("div", "neuron-title-row")
+        title_row.appendChild(make_el("div", "neuron-title", text=f"a{pos}"))
+        help_btn = make_el("button", "act-help-btn", text="?")
+        help_btn.title = "What do activation functions do?"
+        title_row.appendChild(help_btn)
+        neuron_box.appendChild(title_row)
 
         select = document.createElement("select")
         select.className = "act-select"
@@ -87,6 +92,7 @@ def build_diagram():
         select.addEventListener("change", create_proxy(
             lambda evt, lid=lid: on_activation_change(lid, evt.target.value)))
         remove_btn.addEventListener("click", create_proxy(lambda evt, lid=lid: on_remove_layer(lid)))
+        help_btn.addEventListener("click", create_proxy(open_act_help))
 
     render_weight_badges()
     clear_chain_rule_slots()
@@ -107,10 +113,22 @@ def on_remove_layer(lid):
 
 # ── Live value rendering ──────────────────────────────────────────────────
 
-def _weight_badge_html(layer, pos):
-    html = f"w<sub>{pos}</sub> = <span class='w-color'>{fmt(layer['w'])}</span>"
+def _source_symbol(idx):
+    """The variable name feeding this layer: the raw input for the first
+    layer, otherwise the previous layer's activation output."""
+    return "x" if idx == 0 else f"a<sub>{idx}</sub>"
+
+
+def _weight_badge_html(layer, idx):
+    """Renders the layer's weight (and bias, if enabled) as a single
+    algebraic equation -- e.g. "5.00x" or "1.20a1 + 0.30" -- instead of a
+    bare "w = 5" label."""
+    source = _source_symbol(idx)
+    html = f"<span class='w-color'>{fmt(layer['w'], 2)}</span>{source}"
     if state.biases_enabled:
-        html += f"<br>b<sub>{pos}</sub> = <span class='b-color'>{fmt(layer['b'])}</span>"
+        b = layer["b"]
+        sign = "+" if b >= 0 else "−"
+        html += f" <span class='eq-op'>{sign}</span> <span class='b-color'>{fmt(abs(b), 2)}</span>"
     return html
 
 
@@ -118,7 +136,7 @@ def render_weight_badges():
     for idx, layer in enumerate(state.layers):
         badge = state.get_id(f"weight-badge-{layer['id']}")
         if badge:
-            badge.innerHTML = _weight_badge_html(layer, idx + 1)
+            badge.innerHTML = _weight_badge_html(layer, idx)
 
 
 def render_output_readout():
@@ -143,8 +161,6 @@ def render_chain_rule(entry):
     pos = entry["layer_pos"]
     slot = state.get_id(f"chain-rule-{entry['layer_id']}")
     if slot:
-        act_name = ACTIVATION_SYMBOL.get(entry["act"], "")
-        upstream = "L" if entry["is_last"] else f"a_{{{pos + 1}}}"
         formula = f"dL/dw<sub>{pos}</sub> = dL/da<sub>{pos}</sub> · da<sub>{pos}</sub>/dw<sub>{pos}</sub>"
         nums = (f"= {fmt(entry['avg_grad_out'])} · {fmt(entry['avg_local'])} "
                 f"≈ {fmt(entry['grad_w'])}")
@@ -185,3 +201,17 @@ def highlight_layer(lid, active: bool):
             box.classList.add("neuron-active")
         else:
             box.classList.remove("neuron-active")
+
+
+# ── Activation help popover ───────────────────────────────────────────────
+
+def open_act_help(evt=None):
+    popover = state.get_id("act-help-popover")
+    if popover:
+        popover.classList.remove("hidden")
+
+
+def close_act_help(evt=None):
+    popover = state.get_id("act-help-popover")
+    if popover:
+        popover.classList.add("hidden")
