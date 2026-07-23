@@ -350,7 +350,7 @@ def device_by_name(name: str) -> "Element | None":
     return None
 
 def get_device_options_html() -> str:
-    opts = '<option class="dev-dropdown" value="">— device —</option>'
+    opts = '<option class="dev-dropdown" value="">— choose a device —</option>'
     for device in state.devices:
         opts += f'<option value="{device.name}">{device.name}</option>'
     return opts
