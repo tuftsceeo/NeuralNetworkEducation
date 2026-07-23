@@ -250,6 +250,9 @@ def marker_endpoints(plan_idx, is_activation):
     return source_id, target_id
 
 
+_marker_els = []  # index-aligned with state.grad_markers: {"path", "head", "label"} or None
+
+
 def add_grad_marker(source_id, target_id, html):
     above = len(state.grad_markers) % 2 == 1
     state.grad_markers.append({
@@ -260,7 +263,11 @@ def add_grad_marker(source_id, target_id, html):
 
 def clear_grad_markers():
     state.grad_markers = []
-    redraw_grad_markers()
+    _marker_els.clear()
+    if grad_arrow_svg_el is not None:
+        grad_arrow_svg_el.innerHTML = ""
+    if grad_label_layer_el is not None:
+        grad_label_layer_el.innerHTML = ""
 
 
 def _arrowhead_path_d(x2, y2, dx, dy, size=8.0):
@@ -288,24 +295,29 @@ def _svg_path(d, stroke_width=2.0):
 
 
 def redraw_grad_markers():
-    """Recomputes every marker's arrow + label from the LIVE positions of
-    its source/target boxes. Safe to call any time (resize, new marker) --
-    it's a full clear-and-redraw, not an incremental patch. Callers are
-    responsible for having already applied any DOM change that would
-    resize a box (e.g. re-rendering a weight badge's text) BEFORE calling
-    this, so the measured position is the box's FINAL one -- measuring
-    first and mutating content after is what causes a label to visibly
-    jump right after it appears."""
+    """Recomputes every marker's arrow + label position from the LIVE
+    positions of its source/target boxes. Safe to call any time (resize,
+    new marker). Reuses each existing marker's DOM nodes rather than
+    tearing down and rebuilding all of them -- only a brand-new marker
+    gets fresh nodes (and so is the only one that plays the "row-in"
+    entrance animation). Recreating every node on each call, as a full
+    clear-and-redraw would, restarts that animation on markers that were
+    already on screen, which is what made the whole set flash on every
+    reveal instead of just the newest one appearing.
+
+    Callers are responsible for having already applied any DOM change
+    that would resize a box (e.g. re-rendering a weight badge's text)
+    BEFORE calling this, so the measured position is the box's FINAL one
+    -- measuring first and mutating content after is what causes a label
+    to visibly jump right after it appears."""
     if grad_arrow_svg_el is None or grad_label_layer_el is None or diagram_canvas_el is None:
         return
-    grad_arrow_svg_el.innerHTML = ""
-    grad_label_layer_el.innerHTML = ""
-    if not state.grad_markers:
-        return
+    while len(_marker_els) < len(state.grad_markers):
+        _marker_els.append(None)
 
     canvas_rect = diagram_canvas_el.getBoundingClientRect()
 
-    for marker in state.grad_markers:
+    for i, marker in enumerate(state.grad_markers):
         source_el = state.get_id(marker["source_id"])
         target_el = state.get_id(marker["target_id"])
         if source_el is None or target_el is None:
@@ -326,17 +338,36 @@ def redraw_grad_markers():
             dip = max(y1, y2) + 34
 
         path_d = f"M{x1:.1f},{y1:.1f} Q{(x1 + x2) / 2:.1f},{dip:.1f} {x2:.1f},{y2:.1f}"
-        grad_arrow_svg_el.appendChild(_svg_path(path_d))
-
         head_d = _arrowhead_path_d(x2, y2, x2 - (x1 + x2) / 2, y2 - dip)
-        if head_d:
-            grad_arrow_svg_el.appendChild(_svg_path(head_d))
+        label_left = f"{(x1 + x2) / 2:.1f}px"
+        label_top = f"{(dip - 6) if above else (dip + 6):.1f}px"
 
-        label = make_el("div", "grad-label above" if above else "grad-label")
-        label.innerHTML = marker["html"]
-        label.style.left = f"{(x1 + x2) / 2:.1f}px"
-        label.style.top = f"{(dip - 6) if above else (dip + 6):.1f}px"
-        grad_label_layer_el.appendChild(label)
+        els = _marker_els[i]
+        if els is None:
+            path_el = _svg_path(path_d)
+            grad_arrow_svg_el.appendChild(path_el)
+            head_el = _svg_path(head_d) if head_d else None
+            if head_el is not None:
+                grad_arrow_svg_el.appendChild(head_el)
+            label = make_el("div", "grad-label above" if above else "grad-label")
+            label.innerHTML = marker["html"]
+            label.style.left = label_left
+            label.style.top = label_top
+            grad_label_layer_el.appendChild(label)
+            _marker_els[i] = {"path": path_el, "head": head_el, "label": label}
+        else:
+            els["path"].setAttribute("d", path_d)
+            if head_d:
+                if els["head"] is None:
+                    els["head"] = _svg_path(head_d)
+                    grad_arrow_svg_el.appendChild(els["head"])
+                else:
+                    els["head"].setAttribute("d", head_d)
+            elif els["head"] is not None:
+                els["head"].remove()
+                els["head"] = None
+            els["label"].style.left = label_left
+            els["label"].style.top = label_top
 
 
 def render_boundary_reveal():
