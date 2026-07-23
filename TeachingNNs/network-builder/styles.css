@@ -112,7 +112,7 @@ body {
     color: var(--text-muted);
 }
 
-.device-list { display: flex; flex-direction: column; gap: 10px; }
+.device-list { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
 
 .btn-add-device {
     display: inline-flex;
@@ -446,17 +446,24 @@ body {
     border-bottom: 1.5px solid rgba(0,0,0,0.06);
 }
 .node-device-select {
-    flex: 1; min-width: 0;
-    background: transparent; border: none;
+    flex: 1; min-width: 0; width: 100%;
+    background-color: rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 6px;
     font-family: var(--font-ui);
-    font-size: 11px; font-weight: 700;
+    font-size: 9px; font-weight: 700;
     letter-spacing: 0.05em; text-transform: uppercase;
-    padding: 2px; cursor: pointer;
+    padding: 3px 18px 3px 6px; cursor: pointer;
     appearance: none; -webkit-appearance: none;
     color: var(--teal);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 10px;
 }
 .output-node .node-device-select { color: var(--green); }
-.node-device-select:focus { outline: none; }
+.node-device-select:hover { border-color: rgba(0,0,0,0.22); }
+.node-device-select:focus { outline: none; border-color: var(--blue-bright); }
 
 .node-reading {
     font-family: var(--font-mono);
