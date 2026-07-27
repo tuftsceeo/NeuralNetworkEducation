@@ -37,16 +37,29 @@ def _crop_bounds() -> tuple[int, int]:
         start = end
     return start, end
 
+CROP_THUMB_LEN = 30   # must match the ::-webkit-slider-thumb / ::-moz-range-thumb width in styles.css
+
 def render_crop_sliders():
     """Size the crop bar to match the dataset-rows column's actual rendered
     height (so one slider step lines up with one table row) and repaint the
-    red/green segments to reflect the current crop window."""
+    red/green segments to reflect the current crop window.
+
+    Hidden entirely while the dataset is empty (nothing to crop yet)."""
     n = len(state.training_data)
+    panel = get_id("dataset-crop-panel")
+    if panel:
+        if n > 0:
+            panel.classList.remove("hidden")
+        else:
+            panel.classList.add("hidden")
+    if n == 0:
+        return
+
     start, end = _crop_bounds()
     max_idx = max(n - 1, 0)
 
     rows_el = get_id("dataset-rows")
-    bar_h = rows_el.offsetHeight if rows_el and n > 0 else 0
+    bar_h = rows_el.offsetHeight if rows_el else 0
     bar_h = max(bar_h, 24)
 
     bar = get_id("crop-bar")
@@ -57,9 +70,15 @@ def render_crop_sliders():
 
     if bar:
         bar.style.height = f"{bar_h}px"
+    # The native thumb never lets its center travel past half its own length
+    # from either end of the input's box, so a slider exactly bar_h long
+    # would leave a ~15px gap at each end where the handle can't reach.
+    # Padding the slider's length by one thumb-length (and keeping it
+    # centered on the bar, as the CSS already does) cancels that inset out,
+    # so the handle can reach the true top/bottom of the bar.
     for slider in (top, bottom):
         if slider:
-            slider.style.width = f"{bar_h}px"
+            slider.style.width = f"{bar_h + CROP_THUMB_LEN}px"
 
     if top:
         top.max = str(max_idx)

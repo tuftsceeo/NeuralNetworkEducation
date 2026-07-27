@@ -1007,7 +1007,7 @@ body {
 .dataset-crop-panel {
     display: flex;
     flex: 0 0 auto;
-    padding-top: 26px; /* roughly clears the header row so 0 lines up with row 1 */
+    padding-top: 22px; /* roughly clears the header row so 0 lines up with row 1 */
 }
 
 .crop-bar {
