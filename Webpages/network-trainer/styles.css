@@ -941,11 +941,19 @@ body {
 /* ── Dataset card ─────────────────────────────────────────────────── */
 .dataset-card { padding: 22px 28px; flex: 0 0 320px; width: 320px; }
 
+.dataset-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
 .dataset-table {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
     overflow-x: auto;
 }
 
@@ -981,8 +989,84 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 220px;
+    height: 220px;
     overflow-y: auto;
+}
+
+.dataset-row-cropped .dataset-num-input {
+    border-color: var(--red);
+}
+.dataset-row-cropped .dataset-num-input-x { color: var(--red); }
+.dataset-row-cropped .dataset-num-input-y { color: var(--red); }
+
+/* ── Crop panel: two rotated range inputs that hide the rows before/after
+   their handle from the fit plot without deleting them from the table. ── */
+.dataset-crop-panel {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding-top: 26px; /* roughly clears the header row so 0 lines up with row 1 */
+}
+
+.crop-slider-wrap {
+    position: relative;
+    width: 20px;
+    height: 220px;
+}
+
+.crop-slider-track-bg {
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    transform: translateX(-50%);
+    background: var(--border-mid);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.crop-slider {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 220px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: grab;
+}
+.crop-slider:disabled { cursor: default; opacity: 0.4; }
+
+.crop-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+}
+.crop-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--red);
+    margin-top: -6px;
+}
+.crop-slider::-moz-range-track {
+    height: 4px;
+    background: transparent;
+}
+.crop-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--red);
 }
 
 .dataset-num-input {

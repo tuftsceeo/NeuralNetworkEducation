@@ -180,6 +180,14 @@ def on_generate_data_click(evt=None):
 def on_clear_click(evt=None):
     dataset_ui.clear_data()
 
+@when("input", "#crop-top-slider")
+def _on_crop_top_input(evt):
+    dataset_ui.on_crop_top_input(evt)
+
+@when("input", "#crop-bottom-slider")
+def _on_crop_bottom_input(evt):
+    dataset_ui.on_crop_bottom_input(evt)
+
 # ── Boot ───────────────────────────────────────────────────────────────────────
 
 def boot():

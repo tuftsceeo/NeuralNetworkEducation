@@ -22,14 +22,74 @@ def render_dataset_header():
     html += "<span></span>"
     container.innerHTML = html
 
+def _crop_bounds() -> tuple[int, int]:
+    """(start, end): inclusive indices into state.training_data that stay
+    visible on the fit plot; everything outside is cropped (kept in the
+    table, highlighted red). Clamps state.dataset_crop_start/_end against
+    the dataset's current size so cropping stays valid as points are added
+    or removed."""
+    n = len(state.training_data)
+    if n == 0:
+        return 0, -1
+    start = max(0, min(state.dataset_crop_start, n - 1))
+    end = (n - 1) if state.dataset_crop_end is None else max(0, min(state.dataset_crop_end, n - 1))
+    if start > end:
+        start = end
+    return start, end
+
+def render_crop_sliders():
+    n = len(state.training_data)
+    start, end = _crop_bounds()
+    max_idx = max(n - 1, 0)
+    top = get_id("crop-top-slider")
+    bottom = get_id("crop-bottom-slider")
+    if top:
+        top.max = str(max_idx)
+        top.value = str(start)
+        top.disabled = n <= 1
+    if bottom:
+        bottom.max = str(max_idx)
+        bottom.value = str(end)
+        bottom.disabled = n <= 1
+
+def on_crop_top_input(evt):
+    n = len(state.training_data)
+    if n == 0:
+        return
+    _, end = _crop_bounds()
+    try:
+        val = int(evt.target.value)
+    except (ValueError, TypeError):
+        return
+    state.dataset_crop_start = min(max(val, 0), end)
+    render_dataset_table()
+    refresh_dataset_plot_points()
+
+def on_crop_bottom_input(evt):
+    n = len(state.training_data)
+    if n == 0:
+        return
+    start, _ = _crop_bounds()
+    try:
+        val = int(evt.target.value)
+    except (ValueError, TypeError):
+        return
+    val = max(val, start)
+    state.dataset_crop_end = None if val >= n - 1 else val
+    render_dataset_table()
+    refresh_dataset_plot_points()
+
 def render_dataset_table():
     container = get_id("dataset-rows")
     if not container:
         return
+    start, end = _crop_bounds()
     html = ""
-    for p in state.training_data:
+    for idx, p in enumerate(state.training_data):
         pid = p["id"]
-        html += f'<div class="dataset-row" data-id="{pid}">'
+        cropped = idx < start or idx > end
+        row_cls = "dataset-row dataset-row-cropped" if cropped else "dataset-row"
+        html += f'<div class="{row_cls}" data-id="{pid}">'
         for inp in state.inputs:
             iid = inp["id"]
             val = p["xs"].get(iid, 0.0)
@@ -45,6 +105,7 @@ def render_dataset_table():
     container.innerHTML = html
     for p in state.training_data:
         bind_dataset_row_events(p["id"])
+    render_crop_sliders()
 
 def bind_dataset_row_events(pid: int):
     for inp in state.inputs:
@@ -86,15 +147,19 @@ def _on_remove_point(pid: int):
 
 def refresh_dataset_plot_points():
     """Push each output's Data trace: y = that output's column, x = the
-    FIRST input's column (the fit graph's x-axis is fixed to it)."""
+    FIRST input's column (the fit graph's x-axis is fixed to it). Points
+    outside the crop window (see _crop_bounds) are left out of the plot
+    entirely even though they remain in state.training_data."""
     fit_plot_obj = state.all_plots.get("plot-fit")
     if not fit_plot_obj or not state.inputs:
         return
+    start, end = _crop_bounds()
+    visible = state.training_data[start:end + 1] if end >= start else []
     first_iid = state.inputs[0]["id"]
-    xs = [p["xs"].get(first_iid, 0.0) for p in state.training_data]
+    xs = [p["xs"].get(first_iid, 0.0) for p in visible]
     for out in state.outputs:
         oid = out["id"]
-        ys = [p["ys"].get(oid, 0.0) for p in state.training_data]
+        ys = [p["ys"].get(oid, 0.0) for p in visible]
         fit_plot_obj.update_data_points(oid, xs, ys)
 
 def render_add_point_row():
@@ -186,6 +251,8 @@ def _stop_generate_data():
 def clear_data():
     for p in range(len(state.training_data)):
         state.training_data.pop(0)
+    state.dataset_crop_start = 0
+    state.dataset_crop_end = None
     render_dataset_table()
     refresh_dataset_plot_points()
 

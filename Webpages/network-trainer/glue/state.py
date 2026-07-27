@@ -51,6 +51,15 @@ loss_history: list[float] = []
 normalize_enabled = True
 is_generating_data = False   # True while the "Generate data" hardware-sampling loop is running
 
+# Crop window (Phase: dataset time-window cropping) -----------------------
+# Points outside [dataset_crop_start, dataset_crop_end] stay in training_data
+# and are still editable, but are hidden from the fit plot and highlighted
+# red in the table. dataset_crop_end of None means "no tail crop" -- it
+# tracks the newest point as more are added/streamed in, rather than
+# freezing at whatever the last index happened to be when it was set.
+dataset_crop_start = 0
+dataset_crop_end: int | None = None
+
 ACTIVATION_OPTIONS = [
     ("None",     ""),
     ("ReLU",     "relu"),
