@@ -939,14 +939,38 @@ body {
 }
 
 /* ── Dataset card ─────────────────────────────────────────────────── */
-.dataset-card { padding: 22px 28px; flex: 0 0 320px; width: 320px; }
+/* max-height is set from JS (see render_crop_sliders) to match
+   #training-card's own rendered height, whatever that happens to be --
+   never the other way around. Below that cap the card sizes to its
+   content like normal (small with few rows); past it, .dataset-body's
+   flex:1/overflow-y below is what actually clips and scrolls. */
+.dataset-card {
+    padding: 22px 28px;
+    flex: 0 0 320px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
 
+/* Fills whatever's left under the header bar/header row/add-row (up to
+   dataset-card's JS-set max-height) and scrolls its own contents -- crop
+   bar and table together, so they never fall out of sync -- instead of
+   the card growing past the graphs next to it. */
 .dataset-body {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     margin-bottom: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
+
+/* Sits next to (not inside) dataset-body now, so it stays put while
+   dataset-body scrolls, and needs its own gap where .dataset-table's used
+   to provide one against the header. */
+.dataset-row-header { margin-bottom: 6px; }
 
 .dataset-table {
     display: flex;
@@ -1007,7 +1031,6 @@ body {
 .dataset-crop-panel {
     display: flex;
     flex: 0 0 auto;
-    padding-top: 22px; /* roughly clears the header row so 0 lines up with row 1 */
 }
 
 .crop-bar {

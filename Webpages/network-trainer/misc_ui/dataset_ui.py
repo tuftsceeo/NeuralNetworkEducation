@@ -39,12 +39,23 @@ def _crop_bounds() -> tuple[int, int]:
 
 CROP_THUMB_LEN = 30   # must match the ::-webkit-slider-thumb / ::-moz-range-thumb width in styles.css
 
+def _cap_dataset_card_height():
+    """Cap the dataset card's height at the training card's (the fit/loss
+    graphs) own rendered height -- never the other way around -- so a
+    growing dataset scrolls internally (see .dataset-body's overflow-y)
+    instead of pushing the card taller than the graphs next to it."""
+    card = get_id("dataset-card")
+    training_card = get_id("training-card")
+    if card and training_card:
+        card.style.maxHeight = f"{training_card.offsetHeight}px"
+
 def render_crop_sliders():
     """Size the crop bar to match the dataset-rows column's actual rendered
     height (so one slider step lines up with one table row) and repaint the
     red/green segments to reflect the current crop window.
 
     Hidden entirely while the dataset is empty (nothing to crop yet)."""
+    _cap_dataset_card_height()
     n = len(state.training_data)
     panel = get_id("dataset-crop-panel")
     if panel:
