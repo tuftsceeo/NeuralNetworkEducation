@@ -16,7 +16,7 @@ class ScatterPlot:
         self.ys = deque([], max_points)
         self.traces = to_js([
             {'x': [], 'y': [], 'mode': 'markers', 'type': 'scatter',
-             'name': 'Test points', 'marker': {'color': '#82ca9d', 'size': 8}}
+             'name': 'Test points', 'marker': {'color': "#476f7d", 'size': 8}}
         ])
         layout = to_js({
             "margin": {"l": 28, "r": 10, "t": 10, "b": 22},
