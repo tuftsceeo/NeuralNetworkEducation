@@ -3,7 +3,7 @@ from pyscript.js_modules import Plotly
 
 from plot_utils import to_js
 
-DATA_TRACE_COLORS = ['#477d62', "#17e262", '#0891b2', '#84cc16', '#14b8a6', '#65a30d']
+DATA_TRACE_COLORS = ["#17e262", '#0891b2', "#99c2ae", '#84cc16', '#14b8a6', '#65a30d']
 LIVE_TRACE_COLORS = ['#f59e0b', '#ec4899', '#f97316', '#eab308', '#fb7185', '#fbbf24']
 
 class FitPlot:
