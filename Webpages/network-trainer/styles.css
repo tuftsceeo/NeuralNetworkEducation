@@ -1022,7 +1022,7 @@ body {
     bottom: 0;
     width: 8px;
     transform: translateX(-50%);
-    background: var(--green);
+    background: #a7e8bf; /* soft green */
     border-radius: 4px;
     overflow: hidden;
 }
@@ -1032,7 +1032,7 @@ body {
     left: 0;
     right: 0;
     height: 0;
-    background: var(--red);
+    background: #f4b6b6; /* soft red */
 }
 .crop-bar-seg-top    { top: 0; }
 .crop-bar-seg-bottom { bottom: 0; }
@@ -1070,6 +1070,9 @@ body {
     border: 1.5px solid #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.35);
     cursor: grab;
+    transform: rotate(-90deg); /* counter-rotate: the input itself is
+        rotated 90deg to run vertically, so without this the thumb -- which
+        would otherwise be a horizontal line -- renders on its side */
 }
 .crop-slider::-moz-range-thumb {
     pointer-events: auto;
@@ -1080,6 +1083,7 @@ body {
     border: 1.5px solid #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.35);
     cursor: grab;
+    transform: rotate(-90deg);
 }
 .crop-slider:disabled::-webkit-slider-thumb { cursor: default; }
 .crop-slider:disabled::-moz-range-thumb { cursor: default; }

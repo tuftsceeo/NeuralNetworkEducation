@@ -132,10 +132,6 @@
                     <button class="btn-generate-data" id="clear-data-btn" title="Clear dataset">Clear</button>
                 </div>
                 <div class="dataset-body">
-                    <div class="dataset-table">
-                        <div class="dataset-row dataset-row-header" id="dataset-header"></div>
-                        <div class="dataset-rows" id="dataset-rows"></div>
-                    </div>
                     <div class="dataset-crop-panel" id="dataset-crop-panel" title="Crop the plotted time window without deleting rows">
                         <div class="crop-bar" id="crop-bar">
                             <div class="crop-bar-track">
@@ -145,6 +141,10 @@
                             <input type="range" class="crop-slider" id="crop-top-slider" min="0" max="0" value="0" step="1" title="Crop from the start" />
                             <input type="range" class="crop-slider" id="crop-bottom-slider" min="0" max="0" value="0" step="1" title="Crop from the end" />
                         </div>
+                    </div>
+                    <div class="dataset-table">
+                        <div class="dataset-row dataset-row-header" id="dataset-header"></div>
+                        <div class="dataset-rows" id="dataset-rows"></div>
                     </div>
                 </div>
                 <div class="dataset-add-row" id="dataset-add-row"></div>
