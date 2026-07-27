@@ -137,12 +137,12 @@
                         <div class="dataset-rows" id="dataset-rows"></div>
                     </div>
                     <div class="dataset-crop-panel" id="dataset-crop-panel" title="Crop the plotted time window without deleting rows">
-                        <div class="crop-slider-wrap">
-                            <div class="crop-slider-track-bg"></div>
+                        <div class="crop-bar" id="crop-bar">
+                            <div class="crop-bar-track">
+                                <div class="crop-bar-seg-red crop-bar-seg-top" id="crop-seg-top"></div>
+                                <div class="crop-bar-seg-red crop-bar-seg-bottom" id="crop-seg-bottom"></div>
+                            </div>
                             <input type="range" class="crop-slider" id="crop-top-slider" min="0" max="0" value="0" step="1" title="Crop from the start" />
-                        </div>
-                        <div class="crop-slider-wrap">
-                            <div class="crop-slider-track-bg"></div>
                             <input type="range" class="crop-slider" id="crop-bottom-slider" min="0" max="0" value="0" step="1" title="Crop from the end" />
                         </div>
                     </div>

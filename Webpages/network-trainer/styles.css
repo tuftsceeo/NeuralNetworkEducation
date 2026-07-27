@@ -989,8 +989,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    height: 220px;
-    overflow-y: auto;
 }
 
 .dataset-row-cropped .dataset-num-input {
@@ -999,75 +997,92 @@ body {
 .dataset-row-cropped .dataset-num-input-x { color: var(--red); }
 .dataset-row-cropped .dataset-num-input-y { color: var(--red); }
 
-/* ── Crop panel: two rotated range inputs that hide the rows before/after
-   their handle from the fit plot without deleting them from the table. ── */
+/* ── Crop panel: one bar, two overlaid rotated range inputs. Each input's
+   thumb is styled as a horizontal line and is the only part of it with
+   pointer-events (the input itself is click-through), which is what lets
+   two full-length sliders share one bar without one blocking the other.
+   The bar's height is set from JS to match the dataset-rows column's
+   rendered height (see render_crop_sliders), so a slider step lines up
+   with one table row. ── */
 .dataset-crop-panel {
     display: flex;
-    gap: 8px;
     flex: 0 0 auto;
     padding-top: 26px; /* roughly clears the header row so 0 lines up with row 1 */
 }
 
-.crop-slider-wrap {
+.crop-bar {
     position: relative;
-    width: 20px;
-    height: 220px;
+    width: 26px;
 }
 
-.crop-slider-track-bg {
+.crop-bar-track {
     position: absolute;
     left: 50%;
-    top: 8px;
-    bottom: 8px;
-    width: 4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
     transform: translateX(-50%);
-    background: var(--border-mid);
-    border-radius: 2px;
-    pointer-events: none;
+    background: var(--green);
+    border-radius: 4px;
+    overflow: hidden;
 }
+
+.crop-bar-seg-red {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: var(--red);
+}
+.crop-bar-seg-top    { top: 0; }
+.crop-bar-seg-bottom { bottom: 0; }
 
 .crop-slider {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 220px;
     height: 20px;
     margin: 0;
     padding: 0;
-    transform: translate(-50%, -50%) rotate(-90deg);
+    transform: translate(-50%, -50%) rotate(90deg);
     -webkit-appearance: none;
     appearance: none;
     background: transparent;
-    cursor: grab;
+    pointer-events: none; /* only the thumb (below) is interactive */
 }
-.crop-slider:disabled { cursor: default; opacity: 0.4; }
+.crop-slider:disabled { opacity: 0.4; }
 
 .crop-slider::-webkit-slider-runnable-track {
     height: 4px;
     background: transparent;
 }
-.crop-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--red);
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px var(--red);
-    margin-top: -6px;
-}
 .crop-slider::-moz-range-track {
     height: 4px;
     background: transparent;
 }
-.crop-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--red);
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px var(--red);
+.crop-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 30px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--text-primary);
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    cursor: grab;
 }
+.crop-slider::-moz-range-thumb {
+    pointer-events: auto;
+    width: 30px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--text-primary);
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    cursor: grab;
+}
+.crop-slider:disabled::-webkit-slider-thumb { cursor: default; }
+.crop-slider:disabled::-moz-range-thumb { cursor: default; }
 
 .dataset-num-input {
     width: 100%;

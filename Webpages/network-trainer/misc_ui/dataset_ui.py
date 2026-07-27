@@ -38,11 +38,29 @@ def _crop_bounds() -> tuple[int, int]:
     return start, end
 
 def render_crop_sliders():
+    """Size the crop bar to match the dataset-rows column's actual rendered
+    height (so one slider step lines up with one table row) and repaint the
+    red/green segments to reflect the current crop window."""
     n = len(state.training_data)
     start, end = _crop_bounds()
     max_idx = max(n - 1, 0)
+
+    rows_el = get_id("dataset-rows")
+    bar_h = rows_el.offsetHeight if rows_el and n > 0 else 0
+    bar_h = max(bar_h, 24)
+
+    bar = get_id("crop-bar")
     top = get_id("crop-top-slider")
     bottom = get_id("crop-bottom-slider")
+    seg_top = get_id("crop-seg-top")
+    seg_bottom = get_id("crop-seg-bottom")
+
+    if bar:
+        bar.style.height = f"{bar_h}px"
+    for slider in (top, bottom):
+        if slider:
+            slider.style.width = f"{bar_h}px"
+
     if top:
         top.max = str(max_idx)
         top.value = str(start)
@@ -51,6 +69,13 @@ def render_crop_sliders():
         bottom.max = str(max_idx)
         bottom.value = str(end)
         bottom.disabled = n <= 1
+
+    frac_start = (start / max_idx) if max_idx > 0 else 0.0
+    frac_end = (end / max_idx) if max_idx > 0 else 1.0
+    if seg_top:
+        seg_top.style.height = f"{frac_start * bar_h}px"
+    if seg_bottom:
+        seg_bottom.style.height = f"{(1 - frac_end) * bar_h}px"
 
 def on_crop_top_input(evt):
     n = len(state.training_data)
