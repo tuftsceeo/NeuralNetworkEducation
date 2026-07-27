@@ -408,8 +408,8 @@ def train(epochs: int, lr: float):
 def train_step(lr: float):
     train(epochs=1, lr=lr)
 
-def train_30_epochs(lr: float):
-    train(epochs=30, lr=lr)
+def train_50_epochs(lr: float):
+    train(epochs=50, lr=lr)
 
 def add_data_point(xs: dict, ys: dict):
     state.data_point_counter += 1

@@ -134,9 +134,9 @@ def _on_randomize(evt):
 def _on_step(evt):
     network_model.train_step(get_learning_rate())
 
-@when("click", "#train30-btn")
+@when("click", "#train50-btn")
 def _on_train30(evt):
-    network_model.train_30_epochs(get_learning_rate())
+    network_model.train_50_epochs(get_learning_rate())
 
 @when("click", "#clear-fit-btn")
 def _on_clear_fit(evt):
