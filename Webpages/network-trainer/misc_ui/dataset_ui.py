@@ -70,15 +70,34 @@ def render_crop_sliders():
 
     if bar:
         bar.style.height = f"{bar_h}px"
-    # The native thumb never lets its center travel past half its own length
-    # from either end of the input's box, so a slider exactly bar_h long
-    # would leave a ~15px gap at each end where the handle can't reach.
-    # Padding the slider's length by one thumb-length (and keeping it
-    # centered on the bar, as the CSS already does) cancels that inset out,
-    # so the handle can reach the true top/bottom of the bar.
-    for slider in (top, bottom):
+
+    # One index step should move exactly one row's worth of pixels. The bar
+    # is n rows tall, but there are only max_idx steps between the n index
+    # positions, so the per-step spacing that actually matches a row is
+    # bar_h/n (NOT bar_h/max_idx, which overshoots -- badly so for a small
+    # n, e.g. 1.5x for n=3). row_slot * max_idx is therefore the pixel span
+    # the slider's value range should cover, short of the full bar by
+    # exactly one row_slot.
+    row_slot = bar_h / n
+    travel = max_idx * row_slot
+
+    # The native thumb's center never travels past half its own length from
+    # either end of the input's box, so a slider exactly `travel` long would
+    # leave a gap at each end where the handle can't reach. Padding the
+    # slider's length by one thumb-length cancels that inset out.
+    box_len = travel + CROP_THUMB_LEN
+
+    # Centered on the bar (the CSS default), a box this long falls short of
+    # the bar's actual top/bottom by row_slot/2 on each side (bar_h - travel
+    # == row_slot). Nudging the top slider up and the bottom slider down by
+    # that same row_slot/2 lands each one's resting end exactly on the
+    # bar's edge, while both keep the identical per-step spacing (row_slot).
+    half_slot = row_slot / 2
+    for slider, top_css in ((top, f"calc(50% - {half_slot}px)"),
+                             (bottom, f"calc(50% + {half_slot}px)")):
         if slider:
-            slider.style.width = f"{bar_h + CROP_THUMB_LEN}px"
+            slider.style.width = f"{box_len}px"
+            slider.style.top = top_css
 
     if top:
         top.max = str(max_idx)
@@ -89,12 +108,10 @@ def render_crop_sliders():
         bottom.value = str(end)
         bottom.disabled = n <= 1
 
-    frac_start = (start / max_idx) if max_idx > 0 else 0.0
-    frac_end = (end / max_idx) if max_idx > 0 else 1.0
     if seg_top:
-        seg_top.style.height = f"{frac_start * bar_h}px"
+        seg_top.style.height = f"{start * row_slot}px"
     if seg_bottom:
-        seg_bottom.style.height = f"{(1 - frac_end) * bar_h}px"
+        seg_bottom.style.height = f"{(max_idx - end) * row_slot}px"
 
 def on_crop_top_input(evt):
     n = len(state.training_data)
