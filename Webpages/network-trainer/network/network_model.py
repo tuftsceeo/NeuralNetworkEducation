@@ -146,35 +146,29 @@ def forward():
             fit_plot_obj.add_run_point(out["id"], x_val, state.output_values.get(out["id"], 0.0))
 
 def randomize_weights(evt=None):
-    """Give every neuron in every layer a fresh random weight vector + bias.
+    """Give every neuron in every layer a fresh small uniform(-1, 1) weight
+    vector + bias, as if it were already fit in normalized training space,
+    then fold that into raw storage space via _unnormalize_weights() (the
+    same fold applied after every real training run) so a subsequent
+    train() call's _renormalize_weights() exactly inverts it back to these
+    small values.
 
-    The first layer's weights are drawn scaled down by each input's dataset
-    std (when training data + normalization are available), to cancel out
-    the x_std multiply that _renormalize_weights() applies to the first
-    layer right before every training run (see network_model.py's
-    _fold_input_scale). That multiply is only meaningful for weights that
-    came from a real fit being round-tripped through raw space -- applied
-    to fresh random noise, it just inflates the effective normalized-space
-    weight by the input's raw std. For inputs with real-world scale (tens,
-    hundreds), that inflation is large enough to immediately saturate
-    tanh/sigmoid, killing their gradient before training can take a single
-    useful step. Pre-dividing here keeps the weight that actually reaches
-    the normalized input at the intended small uniform(-1, 1) scale."""
+    Without this fold, fresh random noise would sit directly in raw space:
+    _renormalize_weights() would then multiply the first layer by the
+    input's raw std (inflating the weight enough to immediately saturate
+    tanh/sigmoid) and subtract the output's raw mean from the last layer's
+    bias (producing a huge normalized-space offset whenever the output's
+    mean is large relative to its std -- common for real-world data --
+    which then takes hundreds of gradient-clipped steps to walk back)."""
     import sync
     import arrows
-    x_stats = _dataset_stats()[0] if (state.normalize_enabled and state.training_data) else {}
-    input_ids = [inp["id"] for inp in state.inputs]
-    for layer_idx, layer in enumerate(state.layers):
+    for layer in state.layers:
         for n in layer["neurons"]:
-            new_weights = []
-            for i in range(len(n["weights"])):
-                w = random.uniform(-1.0, 1.0)
-                if layer_idx == 0 and i < len(input_ids):
-                    _, x_std = x_stats.get(input_ids[i], (0.0, 1.0))
-                    w /= x_std
-                new_weights.append(w)
-            n["weights"] = new_weights
+            n["weights"] = [random.uniform(-1.0, 1.0) for _ in n["weights"]]
             n["bias"] = random.uniform(-1.0, 1.0)
+    if state.normalize_enabled:
+        x_stats, y_stats = _dataset_stats()
+        _unnormalize_weights(x_stats, y_stats)
     for idx in range(len(state.layers)):
         sync.rebuild_layer_eq_html(idx)
     arrows.redraw_arrows()
