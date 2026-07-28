@@ -1,3 +1,5 @@
+# Just the simplest PyTorch Neural net I could make
+
 import torch.nn as nn
 import torch
 from torch.utils.data import TensorDataset, DataLoader
