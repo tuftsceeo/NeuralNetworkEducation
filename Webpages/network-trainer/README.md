@@ -40,3 +40,7 @@ A hands-on webpage for training a small neural network on data manually inputed 
 | `JS/ble.js` | Web Bluetooth wrapper class exposed to Python as a PyScript JS module. |
 | `JS/plotly.js` | Stub exposing the CDN-loaded global `Plotly` as a PyScript JS module. |
 | `styles.css` | Visual styling for cards, diagram, plots, and popovers. |
+
+## Deployment
+
+Hosted at [pyscript.com/@tuftsceeo/network-trainer](https://pyscript.com/@tuftsceeo/network-trainer). See the [repo-level PyScript deployment notes](../../README.md#how-the-webpages-apps-deploy-to-pyscriptcom) for how this actually syncs with GitHub — short version: every `.py`/`.js` file here is fetched live from `raw.githubusercontent.com`/jsdelivr on `main`, so pushing to `main` is enough to update the live app. The one exception is `pyscript.toml` itself: it lives only in the pyscript.com project's own storage and has to be hand-edited there whenever a file is added, removed, or renamed. The copy in this directory is a reference mirror, not the live one — keep it in sync by hand.
