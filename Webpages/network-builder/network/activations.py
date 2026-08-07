@@ -13,7 +13,10 @@ import numpy as np
 
 import state
 
-IMPLICIT_MULT_RE = re.compile(r'(?<=[0-9])(?=[a-zA-Z(])|(?<=[a-zA-Z)])(?=[0-9(])')
+FUNC_CALL_RE = re.compile(r'([A-Za-z_][A-Za-z_0-9]*)\(')
+DIGIT_BEFORE_RE = re.compile(r'(?<=[0-9])(?=[a-zA-Z(])')
+LETTER_BEFORE_DIGIT_RE = re.compile(r'(?<=[a-zA-Z)])(?=[0-9])')
+PAREN_ADJACENT_RE = re.compile(r'(?<=\))(?=\()')
 
 def sigmoid_numpy(x):
     return 1.0 / (1.0 + np.exp(-x))
@@ -32,9 +35,18 @@ def apply_activation(x: float, fn: str, custom_activation: dict | None = None) -
     else:
         return x
 
+def _paren_repl(m):
+    name = m.group(1)
+    return name + "(" if name in state.CUSTOM_ACT_NAMES else name + "*("
+
 def normalize_expr(expr: str) -> str:
+    """Insert implicit-multiplication `*` (e.g. `3x`, `2(x+1)`) while leaving
+    calls to known functions like `abs(x)` or `sqrt(x)` untouched."""
     cleaned = expr.replace("^", "**")
-    cleaned = IMPLICIT_MULT_RE.sub("*", cleaned)
+    cleaned = FUNC_CALL_RE.sub(_paren_repl, cleaned)
+    cleaned = DIGIT_BEFORE_RE.sub("*", cleaned)
+    cleaned = LETTER_BEFORE_DIGIT_RE.sub("*", cleaned)
+    cleaned = PAREN_ADJACENT_RE.sub("*", cleaned)
     return cleaned
 
 def safe_eval_expr(expr: str, x: float) -> float:
