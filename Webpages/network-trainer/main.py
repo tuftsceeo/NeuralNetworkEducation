@@ -77,6 +77,7 @@ def stop_network(evt=None):
     get_id("stop-btn").setAttribute("disabled", "")
     get_id("play-btn").removeAttribute("disabled")
     document.body.classList.remove("running")
+    Device.flush_pending_commands()
     for device in state.devices:
         try:
             device.stop()

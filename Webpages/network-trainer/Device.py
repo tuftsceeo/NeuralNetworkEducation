@@ -73,6 +73,25 @@ async def _wasm_worker_loop(worker):
 
 bd.my_worker.start_thread()
 
+def flush_pending_commands():
+    """Drop any not-yet-sent BLE requests.
+
+    The run loop enqueues a 'send' request every tick (main.py's 50ms
+    loop_network) but _wasm_worker_loop sends them strictly one at a
+    time, awaiting each BLE write. If BLE round-trips run slower than
+    the tick rate, motor-speed updates pile up in request_queue faster
+    than they drain. Stop's motor_stop() request would otherwise land
+    at the tail of that backlog, so the robot keeps executing stale
+    speed commands for a while after Stop is pressed. Call this right
+    before issuing the stop command so it isn't stuck behind them.
+    """
+    q = bd.my_worker.request_queue
+    while not q.empty():
+        try:
+            q.get_nowait()
+        except Exception:
+            break
+
 _DEVICE_MAP = {
     "Double Motor": le.DoubleMotor,
     "Single Motor": le.SingleMotor,
