@@ -7,25 +7,55 @@ import numpy as np
 
 from state import CUSTOM_ACT_NAMES
 
-_KNOWN_NAMES = set(CUSTOM_ACT_NAMES)
-FUNC_CALL_RE = re.compile(r'([A-Za-z_][A-Za-z_0-9]*)\(')
-DIGIT_BEFORE_RE = re.compile(r'(?<=[0-9])(?=[a-zA-Z(])')
-LETTER_BEFORE_DIGIT_RE = re.compile(r'(?<=[a-zA-Z)])(?=[0-9])')
-PAREN_ADJACENT_RE = re.compile(r'(?<=\))(?=\()')
+_CALLABLE_NAMES = {k for k, v in CUSTOM_ACT_NAMES.items() if callable(v)}
+_KNOWN_NAMES = set(CUSTOM_ACT_NAMES) | {"x"}
+_TOKEN_RE = re.compile(r'[A-Za-z_][A-Za-z_0-9]*|\d+\.\d*|\.\d+|\d+|\*\*|.')
+_TRAILING_DIGITS_RE = re.compile(r'^([A-Za-z_]+)(\d+)$')
 
-def _paren_repl(m):
-    name = m.group(1)
-    return name + "(" if name in _KNOWN_NAMES else name + "*("
+def _tokenize(s: str):
+    """Split into (kind, text) pairs, keeping known names like `log2` intact
+    instead of splitting them at the digit boundary."""
+    tokens = []
+    for tok in _TOKEN_RE.findall(s):
+        c = tok[0]
+        if c.isalpha() or c == "_":
+            if tok not in _KNOWN_NAMES:
+                m = _TRAILING_DIGITS_RE.match(tok)
+                if m and m.group(1) in _KNOWN_NAMES:
+                    tokens.append(("NAME", m.group(1)))
+                    tokens.append(("NUM", m.group(2)))
+                    continue
+            tokens.append(("NAME", tok))
+        elif c.isdigit() or c == ".":
+            tokens.append(("NUM", tok))
+        elif tok == "(":
+            tokens.append(("LPAREN", tok))
+        elif tok == ")":
+            tokens.append(("RPAREN", tok))
+        else:
+            tokens.append(("OP", tok))
+    return tokens
 
 def normalize_expr(expr: str) -> str:
     """Insert implicit-multiplication `*` (e.g. `3x`, `2(x+1)`) while leaving
-    calls to known functions like `abs(x)` or `sqrt(x)` untouched."""
+    calls to known functions like `abs(x)` or `log2(x)` untouched."""
     cleaned = expr.replace("^", "**")
-    cleaned = FUNC_CALL_RE.sub(_paren_repl, cleaned)
-    cleaned = DIGIT_BEFORE_RE.sub("*", cleaned)
-    cleaned = LETTER_BEFORE_DIGIT_RE.sub("*", cleaned)
-    cleaned = PAREN_ADJACENT_RE.sub("*", cleaned)
-    return cleaned
+    tokens = _tokenize(cleaned)
+    out = []
+    prev_kind = prev_val = None
+    for kind, val in tokens:
+        if prev_kind is not None:
+            need_mult = (
+                (prev_kind == "NUM" and kind in ("NAME", "LPAREN")) or
+                (prev_kind in ("NAME", "RPAREN") and kind == "NUM") or
+                (prev_kind == "RPAREN" and kind == "LPAREN") or
+                (prev_kind == "NAME" and kind == "LPAREN" and prev_val not in _CALLABLE_NAMES)
+            )
+            if need_mult:
+                out.append("*")
+        out.append(val)
+        prev_kind, prev_val = kind, val
+    return "".join(out)
 
 def safe_eval_expr(expr: str, x: float) -> float:
     if not expr or not expr.strip():
