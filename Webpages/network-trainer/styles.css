@@ -182,12 +182,29 @@ body {
 /* ── Network card ──────────────────────────────────────────────── */
 .network-card { padding: 32px 28px 28px; overflow-x: auto; }
 
-/* Zoom controls, centered above the network diagram */
+/* Zoom controls, centered above the network diagram; activation toggle sits
+   to the left of them */
 .zoom-bar {
     display: flex;
+    align-items: center;
     justify-content: center;
+    position: relative;
     padding-bottom: 18px;
 }
+
+.btn-link-toggle {
+    position: absolute;
+    left: 0;
+    background: none;
+    border: none;
+    color: var(--purple);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 6px;
+}
+.btn-link-toggle:hover { text-decoration: underline; }
 
 /* ── Network layout: four columns ─────────────────────────────── */
 .network-wrap {
@@ -259,12 +276,18 @@ body {
 .btn-add-layer:hover  { background: #ddd6fe; border-color: var(--purple); }
 .btn-add-layer:active { transform: scale(0.96); }
 
-/* Activation column stretches to match the height of the tallest column */
+/* Activation column stretches to match the height of the tallest column.
+   Hidden by default so first-touch students see a plain weighted-sum
+   network; "+ Activation function" reveals it for every layer at once. */
 .col-activation {
+    display: none;
     align-self: stretch;
     width: max(90px, calc(120px * var(--zoom)));
     flex-shrink: 0;
     padding: calc(10px * var(--zoom)) 0;
+}
+.network-wrap.show-activation .col-activation {
+    display: flex;
 }
 
 .act-box {

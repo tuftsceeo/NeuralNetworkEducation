@@ -165,6 +165,10 @@ def _on_zoom_out(evt):
 def _on_zoom_in(evt):
     ui_chrome.zoom_in()
 
+@when("click", "#show-activation-btn")
+def _on_toggle_activation(evt):
+    ui_chrome.toggle_activation_visibility()
+
 @when("change", "#debug-toggle")
 def _on_debug_toggle(evt):
     state.debug_mode = evt.target.checked
@@ -204,6 +208,7 @@ def boot():
     network_actions.add_output()
 
     ui_chrome.apply_zoom()
+    ui_chrome.apply_activation_visibility()
     ui_chrome.setup_resize_observer()
     arrows.schedule_redraw(150)
 
