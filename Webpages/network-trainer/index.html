@@ -21,6 +21,21 @@
 
     <div class="page-wrap" id="page-wrap" style="display:none">
 
+        <!-- ── Browser compatibility warning (Web Bluetooth) ───────── -->
+        <div id="ble-warning-banner" class="ble-warning-banner hidden">
+            <span class="ble-warning-text">
+                Your browser doesn't support Web Bluetooth, so it can't connect to LEGO hardware.
+                Everything else here still works — you can use the virtual motor and joystick,
+                or switch to Chrome or Edge for hardware.
+            </span>
+            <button class="btn-icon" id="close-ble-warning-btn" title="Dismiss">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
         <!-- ── Connection card ───────────────────────────────────── -->
         <div class="card connect-card">
             <div class="connect-header">
@@ -35,12 +50,46 @@
                     Connect device
                 </button>
             </div>
+
+            <!-- ── Virtual controller: stands in for real hardware on
+                 browsers without Web Bluetooth (see ble-warning-banner) ── -->
+            <div class="virtual-controller-panel hidden" id="virtual-controller-panel">
+                <div class="virtual-controller-header">
+                    <span class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</span>
+                    <button class="btn-generate-data" id="zero-virtual-sliders-btn" title="Reset both sliders to 0">0 inputs</button>
+                </div>
+                <div class="virtual-controller-row">
+                    <div class="virtual-slider-pair">
+                        <div class="virtual-slider-col">
+                            <div class="vslider-wrap">
+                                <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
+                            </div>
+                            <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
+                            <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
+                        </div>
+                        <div class="virtual-slider-col">
+                            <div class="vslider-wrap">
+                                <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
+                            </div>
+                            <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
+                            <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
+                        </div>
+                    </div>
+                    <div class="virtual-motor">
+                        <div class="virtual-motor-body">
+                            <div class="virtual-motor-blade" id="virtual-motor-blade"></div>
+                        </div>
+                        <span class="virtual-motor-label">Speed <span id="virtual-motor-value">0</span></span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ── Network card ──────────────────────────────────────── -->
         <div class="card network-card">
 
             <div class="zoom-bar">
+                <button class="btn-link-toggle" id="show-activation-btn" title="Show/hide each layer's activation function">+ Activation function</button>
                 <div class="zoom-control" title="Zoom the network diagram">
                     <button class="btn-zoom" id="zoom-out-btn" title="Zoom out">&minus;</button>
                     <span class="zoom-level" id="zoom-level-label">100%</span>

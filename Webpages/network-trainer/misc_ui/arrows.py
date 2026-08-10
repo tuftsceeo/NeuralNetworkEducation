@@ -163,28 +163,42 @@ def redraw_arrows():
         neuron_l_pts, neuron_r_pts, neuron_heights = _anchor_points("cell-neuron-", layer["neurons"])
         if not neuron_l_pts:
             return
-        act_el = get_id(f"act-box-{lid}")
-        if not act_el:
-            continue
-        box = rel_box(act_el)
 
-        # neurons_i -> act_i (converge, 1:1 at each neuron's own y)
-        for (nx, ny, nid) in neuron_r_pts:
-            straight_arrow(svg_el, nx, ny, box["x"], ny, stroke_w=2.0,
-                           debug_value=state.neuron_pre_values.get(nid))
+        if state.show_activation:
+            act_el = get_id(f"act-box-{lid}")
+            if not act_el:
+                continue
+            box = rel_box(act_el)
 
-        act_rx = box["x"] + box["w"]
+            # neurons_i -> act_i (converge, 1:1 at each neuron's own y)
+            for (nx, ny, nid) in neuron_r_pts:
+                straight_arrow(svg_el, nx, ny, box["x"], ny, stroke_w=2.0,
+                               debug_value=state.neuron_pre_values.get(nid))
+
+            act_rx = box["x"] + box["w"]
+            src_pts = [(act_rx, ny, nid) for (nx, ny, nid) in neuron_r_pts]
+        else:
+            # Activation column hidden: skip straight from each neuron.
+            src_pts = neuron_r_pts
 
         if idx + 1 < len(state.layers):
-            # act_i -> neurons_{i+1} (fan: every activated neuron feeds every next neuron)
+            # src -> neurons_{i+1} (fan: every neuron feeds every next neuron)
             next_l_pts, _, next_heights = _anchor_points("cell-neuron-", state.layers[idx + 1]["neurons"])
-            src_pts_from_box = [(act_rx, ny, nid) for (nx, ny, nid) in neuron_r_pts]
-            fan_arrows(svg_el, src_pts_from_box, next_l_pts, neuron_heights, next_heights,
+            fan_arrows(svg_el, src_pts, next_l_pts, neuron_heights, next_heights,
                        value_fn=lambda nid: state.neuron_post_values.get(nid))
-        else:
+        elif state.show_activation:
             # last layer -> outputs (1:1 diverge, matching positional pairing)
             for (ox, oy, oid) in out_l_pts:
                 straight_arrow(svg_el, act_rx, oy, ox, oy, stroke_w=2.0,
+                               debug_value=state.output_values.get(oid))
+        else:
+            # last layer -> outputs, no activation box to diverge from: fan
+            # from the neuron column's shared right edge (mirrors the
+            # activation-box-edge behavior above), so this still covers
+            # every output even if outputs currently outnumber neurons.
+            neuron_rx = max(nx for (nx, ny, nid) in src_pts)
+            for (ox, oy, oid) in out_l_pts:
+                straight_arrow(svg_el, neuron_rx, oy, ox, oy, stroke_w=2.0,
                                debug_value=state.output_values.get(oid))
 
 def schedule_redraw(delay=60):
