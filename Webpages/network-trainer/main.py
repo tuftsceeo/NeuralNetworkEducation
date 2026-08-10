@@ -117,7 +117,10 @@ def get_learning_rate() -> float:
 
 def check_browser_support():
     banner = get_id("ble-warning-banner")
-    if banner and window.navigator.bluetooth is None:
+    # Safari/Firefox don't define navigator.bluetooth at all (not just
+    # undefined), so a plain attribute access raises AttributeError there --
+    # hasattr() is the safe way to feature-detect it.
+    if banner and not hasattr(window.navigator, "bluetooth"):
         banner.classList.remove("hidden")
 
 @when("click", "#close-ble-warning-btn")
