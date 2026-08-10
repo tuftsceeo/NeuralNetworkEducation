@@ -19,7 +19,13 @@ class LivePlot:
             "xaxis": {
                 "title": {"font": {"size": 10}},
                 "tickfont": {"size": 9},
-                "showticklabels": False
+                "showticklabels": False,
+                # Fixed 0..size-1 window instead of autorange -- otherwise
+                # the line stretches/compresses as the buffer fills from
+                # empty to full, making early readings look misleadingly
+                # spiky regardless of the actual data.
+                "range": [0, self.size - 1],
+                "autorange": False
             },
             "yaxis": {
                 "tickfont": {"size": 9},
