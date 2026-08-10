@@ -459,7 +459,10 @@ async def create_new_device(evt=None):
 class VirtualDevice:
     def __init__(self, name="Virtual Controller"):
         self.name = name
-        self.state = {"LeftPercent": 0.0, "RightPercent": 0.0}
+        # "Speed" doubles as this device's own telemetry (like a real
+        # motor's reported speed) and its output-write target -- same dual
+        # role Element.state plays for a real device.
+        self.state = {"LeftPercent": 0.0, "RightPercent": 0.0, "Speed": 0}
         self.plots = []
         self.plot_vars = []
 
@@ -467,14 +470,22 @@ class VirtualDevice:
         return ["Speed"]
 
     def set_speed(self, value):
-        _set_virtual_motor_speed(value)
+        _set_virtual_motor_speed(self, value)
 
     def stop(self):
-        _set_virtual_motor_speed(0)
+        _set_virtual_motor_speed(self, 0)
 
-def _set_virtual_motor_speed(value):
+def _set_virtual_motor_speed(dev: "VirtualDevice", value):
     # value arrives already clamped to [-100, 100] by run_output()'s "Speed"
     # branch (or is exactly 0, from stop()).
+    dev.state["Speed"] = value
+    # Output nodes attach their live plot to dev.plots/plot_vars exactly
+    # like Input nodes do (bindings.py's on_output_device_change/
+    # on_output_channel_change both pass attach_plot=True) -- a real
+    # motor's BLE notification feeds that plot via Element.notif_callback's
+    # "LIVE PLOTTING STUFF" loop; this is this device's equivalent push.
+    _push_virtual_plot_points(dev)
+
     label = document.getElementById("virtual-motor-value")
     if label:
         label.textContent = str(value)
