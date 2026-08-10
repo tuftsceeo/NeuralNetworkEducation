@@ -231,6 +231,11 @@ body {
     justify-content: space-between;
     gap: 24px;
 }
+.virtual-slider-pair {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
 .virtual-slider-col {
     display: flex;
     flex-direction: column;

@@ -485,8 +485,9 @@ def _set_virtual_motor_speed(value):
     if value == 0:
         blade.style.animationPlayState = "paused"
         return
-    # Faster spin at higher magnitude: 2s/rev at |value|=0 down to ~0.15s/rev at 100.
-    duration = max(0.15, 2.0 - abs(value) / 100 * 1.85)
+    # Matches the real hardware's scale, where a "speed" of 1 is roughly
+    # 1 RPM: duration (seconds/revolution) = 60 / RPM.
+    duration = 60.0 / abs(value)
     blade.style.animationPlayState = "running"
     blade.style.animationDuration = f"{duration}s"
     blade.style.animationDirection = "reverse" if value < 0 else "normal"

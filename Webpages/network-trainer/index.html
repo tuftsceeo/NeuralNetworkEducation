@@ -59,25 +59,27 @@
                     <button class="btn-generate-data" id="zero-virtual-sliders-btn" title="Reset both sliders to 0">0 inputs</button>
                 </div>
                 <div class="virtual-controller-row">
-                    <div class="virtual-slider-col">
-                        <div class="vslider-wrap">
-                            <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
+                    <div class="virtual-slider-pair">
+                        <div class="virtual-slider-col">
+                            <div class="vslider-wrap">
+                                <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
+                            </div>
+                            <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
+                            <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
                         </div>
-                        <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
-                        <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
+                        <div class="virtual-slider-col">
+                            <div class="vslider-wrap">
+                                <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
+                            </div>
+                            <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
+                            <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
+                        </div>
                     </div>
                     <div class="virtual-motor">
                         <div class="virtual-motor-body">
                             <div class="virtual-motor-blade" id="virtual-motor-blade"></div>
                         </div>
                         <span class="virtual-motor-label">Speed <span id="virtual-motor-value">0</span></span>
-                    </div>
-                    <div class="virtual-slider-col">
-                        <div class="vslider-wrap">
-                            <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
-                        </div>
-                        <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
-                        <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
                     </div>
                 </div>
             </div>
