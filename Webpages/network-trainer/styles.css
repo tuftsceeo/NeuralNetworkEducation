@@ -100,33 +100,6 @@ body {
     box-shadow: var(--card-shadow);
 }
 
-/* ── Browser compatibility warning ────────────────────────────── */
-.ble-warning-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: var(--amber-light);
-    border: 1.5px solid var(--amber-mid);
-    border-radius: 14px;
-    padding: 12px 16px;
-}
-.ble-warning-text {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #8a5a08;
-}
-.ble-warning-banner .btn-icon {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: #8a5a08;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-}
-.ble-warning-banner .btn-icon:hover { color: var(--amber); }
-
 /* ── Connection card ───────────────────────────────────────────── */
 .connect-card { padding: 22px 28px; }
 
@@ -206,136 +179,15 @@ body {
 .btn-disconnect:hover  { background: #991b1b; transform: scale(1.08); }
 .btn-disconnect:active { transform: scale(0.95); }
 
-/* ── Virtual controller (no-Bluetooth fallback) ───────────────── */
-.virtual-controller-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-}
-.virtual-controller-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-.virtual-controller-note {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-.virtual-controller-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-}
-.virtual-slider-pair {
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-}
-.virtual-slider-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-/* A native <input type=range> rotated -90deg reads bottom=min, top=max --
-   the wrap is sized to the POST-rotation footprint (narrow x tall); the
-   slider itself keeps its native horizontal footprint (wide x short) and
-   is centered + spun inside it. */
-.vslider-wrap {
-    width: 32px;
-    height: 120px;
-    position: relative;
-}
-.vslider {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 120px;
-    height: 32px;
-    margin: 0;
-    transform: translate(-50%, -50%) rotate(-90deg);
-    accent-color: var(--blue-bright);
-}
-.virtual-slider-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-.virtual-slider-value {
-    font-size: 12px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-}
-.virtual-motor {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-.virtual-motor-body {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--blue-light);
-    border: 2px solid var(--blue-bright);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-.virtual-motor-blade {
-    width: 4px;
-    height: 44px;
-    background: var(--blue-bright);
-    border-radius: 2px;
-    animation: virtual-motor-spin 2s linear infinite;
-    animation-play-state: paused;
-}
-@keyframes virtual-motor-spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-.virtual-motor-label {
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--text-secondary);
-}
-
 /* ── Network card ──────────────────────────────────────────────── */
 .network-card { padding: 32px 28px 28px; overflow-x: auto; }
 
-/* Zoom controls, centered above the network diagram; activation toggle sits
-   to the left of them */
+/* Zoom controls, centered above the network diagram */
 .zoom-bar {
     display: flex;
-    align-items: center;
     justify-content: center;
-    position: relative;
     padding-bottom: 18px;
 }
-
-.btn-link-toggle {
-    position: absolute;
-    left: 0;
-    background: none;
-    border: none;
-    color: var(--purple);
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 4px 6px;
-}
-.btn-link-toggle:hover { text-decoration: underline; }
 
 /* ── Network layout: four columns ─────────────────────────────── */
 .network-wrap {
@@ -407,18 +259,12 @@ body {
 .btn-add-layer:hover  { background: #ddd6fe; border-color: var(--purple); }
 .btn-add-layer:active { transform: scale(0.96); }
 
-/* Activation column stretches to match the height of the tallest column.
-   Hidden by default so first-touch students see a plain weighted-sum
-   network; "+ Activation function" reveals it for every layer at once. */
+/* Activation column stretches to match the height of the tallest column */
 .col-activation {
-    display: none;
     align-self: stretch;
     width: max(90px, calc(120px * var(--zoom)));
     flex-shrink: 0;
     padding: calc(10px * var(--zoom)) 0;
-}
-.network-wrap.show-activation .col-activation {
-    display: flex;
 }
 
 .act-box {

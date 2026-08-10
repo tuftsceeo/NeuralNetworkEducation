@@ -38,7 +38,7 @@ network_model, templates, arrows, sync, bindings, network_actions,
 dataset_ui, activation_editor, ui_chrome, Device, and the plot_* files).
 """
 import asyncio
-from pyscript import document, when, window
+from pyscript import document, when
 
 import state
 from state import get_id
@@ -109,27 +109,6 @@ def get_learning_rate() -> float:
     except (ValueError, TypeError):
         return state.DEFAULT_LEARNING_RATE
 
-# ── Browser support check ────────────────────────────────────────────────────
-# Web Bluetooth (used by Device.py/ble.js to talk to the LEGO hardware) isn't
-# implemented in Safari or Firefox -- everything else on this page still
-# works without it, so this only surfaces a dismissible warning rather than
-# blocking the app.
-
-def check_browser_support():
-    banner = get_id("ble-warning-banner")
-    # Safari/Firefox don't define navigator.bluetooth at all (not just
-    # undefined), so a plain attribute access raises AttributeError there --
-    # hasattr() is the safe way to feature-detect it.
-    if banner and not hasattr(window.navigator, "bluetooth"):
-        banner.classList.remove("hidden")
-        Device.enable_virtual_controller()
-
-@when("click", "#close-ble-warning-btn")
-def _on_close_ble_warning(evt):
-    banner = get_id("ble-warning-banner")
-    if banner:
-        banner.classList.add("hidden")
-
 # ── Static wiring ──────────────────────────────────────────────────────────────
 
 @when("click", "#add-device-btn")
@@ -186,10 +165,6 @@ def _on_zoom_out(evt):
 def _on_zoom_in(evt):
     ui_chrome.zoom_in()
 
-@when("click", "#show-activation-btn")
-def _on_toggle_activation(evt):
-    ui_chrome.toggle_activation_visibility()
-
 @when("change", "#debug-toggle")
 def _on_debug_toggle(evt):
     state.debug_mode = evt.target.checked
@@ -220,8 +195,6 @@ def boot():
     get_id("loading-splash").style.display = "none"
     get_id("page-wrap").style.display = "flex"
 
-    check_browser_support()
-
     state.all_plots["plot-fit"] = fit_plot.FitPlot("plot-fit")
     state.all_plots["plot-loss"] = loss_plot.LossPlot("plot-loss")
 
@@ -231,7 +204,6 @@ def boot():
     network_actions.add_output()
 
     ui_chrome.apply_zoom()
-    ui_chrome.apply_activation_visibility()
     ui_chrome.setup_resize_observer()
     arrows.schedule_redraw(150)
 

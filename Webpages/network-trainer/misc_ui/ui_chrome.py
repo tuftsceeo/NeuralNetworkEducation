@@ -48,21 +48,6 @@ def zoom_in(evt=None):
     state.zoom_level = round(min(state.ZOOM_MAX, state.zoom_level + state.ZOOM_STEP), 2)
     apply_zoom()
 
-def apply_activation_visibility():
-    wrap = get_id("network-wrap")
-    if wrap:
-        wrap.classList.toggle("show-activation", state.show_activation)
-
-    btn = get_id("show-activation-btn")
-    if btn:
-        btn.textContent = "− Activation function" if state.show_activation else "+ Activation function"
-
-    arrows.schedule_redraw(60)
-
-def toggle_activation_visibility(evt=None):
-    state.show_activation = not state.show_activation
-    apply_activation_visibility()
-
 def setup_resize_observer():
     from pyscript.ffi import create_proxy
     wrap = get_id("network-wrap")

@@ -23,10 +23,6 @@ all_plots: dict[str, object] = {}
 
 debug_mode = False
 
-# Activation columns start hidden so first-touch students see a plain
-# weighted-sum network; toggled on via the "+ Activation function" link.
-show_activation = False
-
 # Zoom only affects the network diagram's spacing/box sizes (via the CSS
 # --zoom variable) -- never font sizes or arrow stroke widths, UNTIL zoom
 # drops below TEXT_ZOOM_THRESHOLD, at which point text also starts
