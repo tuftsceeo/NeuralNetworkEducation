@@ -503,18 +503,70 @@ def _push_virtual_plot_points(dev: "VirtualDevice"):
         update = graph.addPoints(1, [dev.state[var]])
         graph.updatePlot(update)
 
+_VIRTUAL_SLIDERS = (
+    ("virtual-slider-left",  "virtual-slider-left-value",  "LeftPercent"),
+    ("virtual-slider-right", "virtual-slider-right-value", "RightPercent"),
+)
+
+# elem_id -> in-flight spring-back Task, so grabbing a slider again mid-animation
+# cancels the old return instead of fighting it.
+_virtual_slider_anim_tasks: dict[str, "asyncio.Task"] = {}
+
+def _cancel_virtual_slider_anim(elem_id: str):
+    task = _virtual_slider_anim_tasks.pop(elem_id, None)
+    if task and not task.done():
+        task.cancel()
+
+def _apply_virtual_slider_value(elem_id, value_label_id, dev, channel, val):
+    slider = document.getElementById(elem_id)
+    if slider:
+        slider.value = str(val)
+    dev.state[channel] = val
+    label = document.getElementById(value_label_id)
+    if label:
+        label.textContent = str(int(round(val)))
+    _push_virtual_plot_points(dev)
+
+async def _spring_virtual_slider_to_zero(elem_id, value_label_id, dev, channel, start_value):
+    """Physical joystick sliders are spring-loaded and snap back to center
+    the instant you let go; this eases the virtual slider back to 0 the same
+    way over a quick ~250ms instead of leaving it wherever it was dropped."""
+    try:
+        steps, duration = 15, 0.25
+        for i in range(1, steps + 1):
+            eased = 1 - (1 - i / steps) ** 3   # ease-out cubic
+            _apply_virtual_slider_value(elem_id, value_label_id, dev, channel, start_value * (1 - eased))
+            await asyncio.sleep(duration / steps)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        # Only clear our own registration -- if we got cancelled and a new
+        # spring-back task already replaced us in the dict, leave it alone.
+        if _virtual_slider_anim_tasks.get(elem_id) is asyncio.current_task():
+            _virtual_slider_anim_tasks.pop(elem_id, None)
+
 def _bind_virtual_slider(elem_id: str, value_label_id: str, dev: "VirtualDevice", channel: str):
     slider = document.getElementById(elem_id)
     if not slider:
         return
-    def h(evt):
-        val = float(evt.target.value)
-        dev.state[channel] = val
-        label = document.getElementById(value_label_id)
-        if label:
-            label.textContent = str(int(val))
-        _push_virtual_plot_points(dev)
-    slider.addEventListener("input", create_proxy(h))
+
+    def on_input(evt):
+        _cancel_virtual_slider_anim(elem_id)
+        _apply_virtual_slider_value(elem_id, value_label_id, dev, channel, float(evt.target.value))
+    slider.addEventListener("input", create_proxy(on_input))
+
+    def on_release(evt):
+        current = float(slider.value)
+        if current == 0:
+            return
+        _virtual_slider_anim_tasks[elem_id] = asyncio.ensure_future(
+            _spring_virtual_slider_to_zero(elem_id, value_label_id, dev, channel, current))
+    slider.addEventListener("change", create_proxy(on_release))
+
+def _zero_virtual_sliders(dev: "VirtualDevice"):
+    for elem_id, value_label_id, channel in _VIRTUAL_SLIDERS:
+        _cancel_virtual_slider_anim(elem_id)
+        _apply_virtual_slider_value(elem_id, value_label_id, dev, channel, 0)
 
 def enable_virtual_controller():
     """Called once at boot when navigator.bluetooth is missing: hides the
@@ -531,8 +583,12 @@ def enable_virtual_controller():
 
     dev = VirtualDevice()
     state.devices.append(dev)
-    _bind_virtual_slider("virtual-slider-left", "virtual-slider-left-value", dev, "LeftPercent")
-    _bind_virtual_slider("virtual-slider-right", "virtual-slider-right-value", dev, "RightPercent")
+    for elem_id, value_label_id, channel in _VIRTUAL_SLIDERS:
+        _bind_virtual_slider(elem_id, value_label_id, dev, channel)
+
+    zero_btn = document.getElementById("zero-virtual-sliders-btn")
+    if zero_btn:
+        zero_btn.addEventListener("click", create_proxy(lambda evt: _zero_virtual_sliders(dev)))
 
     import sync
     sync.refresh_device_dropdowns()

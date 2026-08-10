@@ -25,7 +25,8 @@
         <div id="ble-warning-banner" class="ble-warning-banner hidden">
             <span class="ble-warning-text">
                 Your browser doesn't support Web Bluetooth, so it can't connect to LEGO hardware.
-                Everything else here still works — for hardware, switch to Chrome or Edge.
+                Everything else here still works — you can use the virtual motor and joystick,
+                or switch to Chrome or Edge for hardware.
             </span>
             <button class="btn-icon" id="close-ble-warning-btn" title="Dismiss">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -53,7 +54,10 @@
             <!-- ── Virtual controller: stands in for real hardware on
                  browsers without Web Bluetooth (see ble-warning-banner) ── -->
             <div class="virtual-controller-panel hidden" id="virtual-controller-panel">
-                <div class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</div>
+                <div class="virtual-controller-header">
+                    <span class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</span>
+                    <button class="btn-generate-data" id="zero-virtual-sliders-btn" title="Reset both sliders to 0">0 inputs</button>
+                </div>
                 <div class="virtual-controller-row">
                     <div class="virtual-slider-col">
                         <div class="vslider-wrap">
