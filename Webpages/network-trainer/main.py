@@ -122,6 +122,7 @@ def check_browser_support():
     # hasattr() is the safe way to feature-detect it.
     if banner and not hasattr(window.navigator, "bluetooth"):
         banner.classList.remove("hidden")
+        Device.enable_virtual_controller()
 
 @when("click", "#close-ble-warning-btn")
 def _on_close_ble_warning(evt):

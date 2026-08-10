@@ -206,6 +206,94 @@ body {
 .btn-disconnect:hover  { background: #991b1b; transform: scale(1.08); }
 .btn-disconnect:active { transform: scale(0.95); }
 
+/* ── Virtual controller (no-Bluetooth fallback) ───────────────── */
+.virtual-controller-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+.virtual-controller-note {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.virtual-controller-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.virtual-slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+}
+.virtual-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.virtual-slider-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    width: 36px;
+    flex-shrink: 0;
+}
+.virtual-slider {
+    flex: 1;
+    accent-color: var(--blue-bright);
+}
+.virtual-slider-value {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.virtual-motor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.virtual-motor-body {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--blue-light);
+    border: 2px solid var(--blue-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.virtual-motor-blade {
+    width: 4px;
+    height: 44px;
+    background: var(--blue-bright);
+    border-radius: 2px;
+    animation: virtual-motor-spin 2s linear infinite;
+    animation-play-state: paused;
+}
+@keyframes virtual-motor-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.virtual-motor-label {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+}
+
 /* ── Network card ──────────────────────────────────────────────── */
 .network-card { padding: 32px 28px 28px; overflow-x: auto; }
 

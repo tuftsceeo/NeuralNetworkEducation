@@ -446,6 +446,97 @@ async def create_new_device(evt=None):
     await add_device_chip(new_dev)
     sync.refresh_device_dropdowns()
 
+# ── Virtual controller (no-Bluetooth fallback) ───────────────────────────────
+# Stands in for a real Controller+Motor pair on browsers without Web
+# Bluetooth (Safari/Firefox, see main.py's check_browser_support()). Exposes
+# LeftPercent/RightPercent input channels -- same names a real LEGO
+# Controller reports -- driven by two <input type=range> sliders, and a
+# "Speed" output channel -- same as a real Motor -- that spins a CSS
+# animation instead of a physical motor. Because run_output() dispatches on
+# fixed channel names (Device.py:~475), reusing "Speed" here means it needs
+# no changes at all: it just calls this class's set_speed() like it would
+# any real device's.
+class VirtualDevice:
+    def __init__(self, name="Virtual Controller"):
+        self.name = name
+        self.state = {"LeftPercent": 0.0, "RightPercent": 0.0}
+        self.plots = []
+        self.plot_vars = []
+
+    def get_out_list(self):
+        return ["Speed"]
+
+    def set_speed(self, value):
+        _set_virtual_motor_speed(value)
+
+    def stop(self):
+        _set_virtual_motor_speed(0)
+
+def _set_virtual_motor_speed(value):
+    # value arrives already clamped to [-100, 100] by run_output()'s "Speed"
+    # branch (or is exactly 0, from stop()).
+    label = document.getElementById("virtual-motor-value")
+    if label:
+        label.textContent = str(value)
+
+    blade = document.getElementById("virtual-motor-blade")
+    if not blade:
+        return
+    if value == 0:
+        blade.style.animationPlayState = "paused"
+        return
+    # Faster spin at higher magnitude: 2s/rev at |value|=0 down to ~0.15s/rev at 100.
+    duration = max(0.15, 2.0 - abs(value) / 100 * 1.85)
+    blade.style.animationPlayState = "running"
+    blade.style.animationDuration = f"{duration}s"
+    blade.style.animationDirection = "reverse" if value < 0 else "normal"
+
+def _push_virtual_plot_points(dev: "VirtualDevice"):
+    """Mirrors the "LIVE PLOTTING STUFF" loop in Element.notif_callback --
+    a real device's BLE notification pushes a fresh point into every
+    live-plot attached to it (dev.plots/dev.plot_vars, wired up by
+    bindings.py whenever an Input node picks this device+channel); a slider
+    move is this device's equivalent of "new data just arrived"."""
+    for graph, var in zip(dev.plots, dev.plot_vars):
+        if var not in dev.state:
+            continue
+        update = graph.addPoints(1, [dev.state[var]])
+        graph.updatePlot(update)
+
+def _bind_virtual_slider(elem_id: str, value_label_id: str, dev: "VirtualDevice", channel: str):
+    slider = document.getElementById(elem_id)
+    if not slider:
+        return
+    def h(evt):
+        val = float(evt.target.value)
+        dev.state[channel] = val
+        label = document.getElementById(value_label_id)
+        if label:
+            label.textContent = str(int(val))
+        _push_virtual_plot_points(dev)
+    slider.addEventListener("input", create_proxy(h))
+
+def enable_virtual_controller():
+    """Called once at boot when navigator.bluetooth is missing: hides the
+    (non-functional) Connect device button, shows the slider/motor panel in
+    its place, and registers the virtual device so it appears in every
+    Input/Output node's device dropdown immediately -- no "connect" step,
+    since there's nothing to connect to."""
+    device_list = document.getElementById("device-list")
+    if device_list:
+        device_list.classList.add("hidden")
+    panel = document.getElementById("virtual-controller-panel")
+    if panel:
+        panel.classList.remove("hidden")
+
+    dev = VirtualDevice()
+    state.devices.append(dev)
+    _bind_virtual_slider("virtual-slider-left", "virtual-slider-left-value", dev, "LeftPercent")
+    _bind_virtual_slider("virtual-slider-right", "virtual-slider-right-value", dev, "RightPercent")
+
+    import sync
+    sync.refresh_device_dropdowns()
+
 # ── Output routing ───────────────────────────────────────────────────────────
 
 def run_output(variable, dev_name, value):
