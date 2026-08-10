@@ -222,40 +222,45 @@ body {
 .virtual-controller-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 24px;
-    flex-wrap: wrap;
 }
-.virtual-slider-group {
+.virtual-slider-col {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex: 1;
-    min-width: 200px;
-}
-.virtual-slider-row {
-    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
+    flex-shrink: 0;
+}
+/* A native <input type=range> rotated -90deg reads bottom=min, top=max --
+   the wrap is sized to the POST-rotation footprint (narrow x tall); the
+   slider itself keeps its native horizontal footprint (wide x short) and
+   is centered + spun inside it. */
+.vslider-wrap {
+    width: 32px;
+    height: 120px;
+    position: relative;
+}
+.vslider {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120px;
+    height: 32px;
+    margin: 0;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    accent-color: var(--blue-bright);
 }
 .virtual-slider-label {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
-    width: 36px;
-    flex-shrink: 0;
-}
-.virtual-slider {
-    flex: 1;
-    accent-color: var(--blue-bright);
 }
 .virtual-slider-value {
     font-size: 12px;
     font-weight: 600;
     font-family: var(--font-mono);
     color: var(--text-primary);
-    width: 32px;
-    text-align: right;
-    flex-shrink: 0;
 }
 .virtual-motor {
     display: flex;

@@ -55,23 +55,25 @@
             <div class="virtual-controller-panel hidden" id="virtual-controller-panel">
                 <div class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</div>
                 <div class="virtual-controller-row">
-                    <div class="virtual-slider-group">
-                        <label class="virtual-slider-row">
-                            <span class="virtual-slider-label">Left</span>
-                            <input type="range" class="virtual-slider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
-                            <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
-                        </label>
-                        <label class="virtual-slider-row">
-                            <span class="virtual-slider-label">Right</span>
-                            <input type="range" class="virtual-slider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
-                            <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
-                        </label>
+                    <div class="virtual-slider-col">
+                        <div class="vslider-wrap">
+                            <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
+                        </div>
+                        <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
+                        <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
                     </div>
                     <div class="virtual-motor">
                         <div class="virtual-motor-body">
                             <div class="virtual-motor-blade" id="virtual-motor-blade"></div>
                         </div>
                         <span class="virtual-motor-label">Speed <span id="virtual-motor-value">0</span></span>
+                    </div>
+                    <div class="virtual-slider-col">
+                        <div class="vslider-wrap">
+                            <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
+                        </div>
+                        <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
+                        <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
                     </div>
                 </div>
             </div>
