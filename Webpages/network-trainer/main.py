@@ -38,7 +38,7 @@ network_model, templates, arrows, sync, bindings, network_actions,
 dataset_ui, activation_editor, ui_chrome, Device, and the plot_* files).
 """
 import asyncio
-from pyscript import document, when
+from pyscript import document, when, window
 
 import state
 from state import get_id
@@ -108,6 +108,23 @@ def get_learning_rate() -> float:
         return val if val > 0 else state.DEFAULT_LEARNING_RATE
     except (ValueError, TypeError):
         return state.DEFAULT_LEARNING_RATE
+
+# ── Browser support check ────────────────────────────────────────────────────
+# Web Bluetooth (used by Device.py/ble.js to talk to the LEGO hardware) isn't
+# implemented in Safari or Firefox -- everything else on this page still
+# works without it, so this only surfaces a dismissible warning rather than
+# blocking the app.
+
+def check_browser_support():
+    banner = get_id("ble-warning-banner")
+    if banner and window.navigator.bluetooth is None:
+        banner.classList.remove("hidden")
+
+@when("click", "#close-ble-warning-btn")
+def _on_close_ble_warning(evt):
+    banner = get_id("ble-warning-banner")
+    if banner:
+        banner.classList.add("hidden")
 
 # ── Static wiring ──────────────────────────────────────────────────────────────
 
@@ -198,6 +215,8 @@ def _on_crop_bottom_input(evt):
 def boot():
     get_id("loading-splash").style.display = "none"
     get_id("page-wrap").style.display = "flex"
+
+    check_browser_support()
 
     state.all_plots["plot-fit"] = fit_plot.FitPlot("plot-fit")
     state.all_plots["plot-loss"] = loss_plot.LossPlot("plot-loss")

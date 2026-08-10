@@ -21,6 +21,20 @@
 
     <div class="page-wrap" id="page-wrap" style="display:none">
 
+        <!-- ── Browser compatibility warning (Web Bluetooth) ───────── -->
+        <div id="ble-warning-banner" class="ble-warning-banner hidden">
+            <span class="ble-warning-text">
+                Your browser doesn't support Web Bluetooth, so it can't connect to LEGO hardware.
+                Everything else here still works — for hardware, switch to Chrome or Edge.
+            </span>
+            <button class="btn-icon" id="close-ble-warning-btn" title="Dismiss">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
         <!-- ── Connection card ───────────────────────────────────── -->
         <div class="card connect-card">
             <div class="connect-header">
