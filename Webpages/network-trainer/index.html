@@ -21,6 +21,28 @@
 
     <div class="page-wrap" id="page-wrap" style="display:none">
 
+        <!-- ── Curriculum header ────────────────────────────────────── -->
+        <div class="header">
+            <img class="header-logo-ewb" src="images/EngineeringWithBricks.png" alt="Engineering with Bricks logo">
+            <div class="header-text">
+                <h1>Neural Network Trainer</h1>
+                <p>Train a live neural network and watch it drive real (or virtual) hardware.</p>
+            </div>
+        </div>
+
+        <!-- ── Lesson tab bar ───────────────────────────────────────── -->
+        <div class="tab-bar" id="lesson-tab-bar">
+            <button class="tab-btn active" id="tab-btn-nn-intro" onclick="switchTrainerTab('nn-intro')">Neural Network Introduction</button>
+            <button class="tab-btn" id="tab-btn-wind" onclick="switchTrainerTab('wind')">Responding to the Wind</button>
+            <button class="tab-btn" id="tab-btn-rotating-display" onclick="switchTrainerTab('rotating-display')">Rotating Display</button>
+            <button class="tab-btn" id="tab-btn-dancing-plant" onclick="switchTrainerTab('dancing-plant')">Dancing Plant</button>
+            <button class="tab-btn" id="tab-btn-dancing-owl" onclick="switchTrainerTab('dancing-owl')">Dancing Owl</button>
+            <button class="tab-btn" id="tab-btn-revolving-door" onclick="switchTrainerTab('revolving-door')">Revolving Door</button>
+            <button class="tab-btn" id="tab-btn-smart-umbrella" onclick="switchTrainerTab('smart-umbrella')">Smart Umbrella</button>
+            <button class="tab-btn" id="tab-btn-flashlight" onclick="switchTrainerTab('flashlight')">Hand-cranked Flashlight</button>
+            <button class="tab-btn" id="tab-btn-line-car" onclick="switchTrainerTab('line-car')">Line Following Car</button>
+        </div>
+
         <!-- ── Browser compatibility warning (Web Bluetooth) ───────── -->
         <div id="ble-warning-banner" class="ble-warning-banner hidden">
             <span class="ble-warning-text">
@@ -36,57 +58,307 @@
             </button>
         </div>
 
-        <!-- ── Connection card ───────────────────────────────────── -->
-        <div class="card connect-card">
-            <div class="connect-header">
-                <span class="connect-title">Devices</span>
-            </div>
-            <div class="device-list" id="device-list">
-                <button class="btn-add-device" id="add-device-btn">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Connect device
-                </button>
+        <!-- ── Sidebar (devices) + main content ──────────────────────── -->
+        <div class="container">
+
+            <!-- ── Sidebar: devices ─────────────────────────────────── -->
+            <div class="sidebar">
+                <div class="card connect-card">
+                    <div class="connect-header">
+                        <span class="connect-title">Devices</span>
+                    </div>
+                    <div class="device-list" id="device-list">
+                        <button class="btn-add-device" id="add-device-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            Connect device
+                        </button>
+                    </div>
+
+                    <!-- ── Virtual controller: stands in for real hardware on
+                         browsers without Web Bluetooth (see ble-warning-banner) ── -->
+                    <div class="virtual-controller-panel hidden" id="virtual-controller-panel">
+                        <div class="virtual-controller-header">
+                            <span class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</span>
+                            <button class="btn-generate-data" id="zero-virtual-sliders-btn" title="Reset both sliders to 0">0 inputs</button>
+                        </div>
+                        <div class="virtual-controller-row">
+                            <div class="virtual-slider-pair">
+                                <div class="virtual-slider-col">
+                                    <div class="vslider-wrap">
+                                        <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
+                                    </div>
+                                    <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
+                                    <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
+                                </div>
+                                <div class="virtual-slider-col">
+                                    <div class="vslider-wrap">
+                                        <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
+                                    </div>
+                                    <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
+                                    <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
+                                </div>
+                            </div>
+                            <div class="virtual-motor">
+                                <div class="virtual-motor-body">
+                                    <div class="virtual-motor-blade" id="virtual-motor-blade"></div>
+                                </div>
+                                <span class="virtual-motor-label">Speed <span id="virtual-motor-value">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- ── Virtual controller: stands in for real hardware on
-                 browsers without Web Bluetooth (see ble-warning-banner) ── -->
-            <div class="virtual-controller-panel hidden" id="virtual-controller-panel">
-                <div class="virtual-controller-header">
-                    <span class="virtual-controller-note">No Bluetooth here — use this virtual controller instead.</span>
-                    <button class="btn-generate-data" id="zero-virtual-sliders-btn" title="Reset both sliders to 0">0 inputs</button>
+            <!-- ── Main content: lesson framing + the tool ─────────────── -->
+            <div class="main-content">
+
+        <!-- ── Lesson intro card: Challenge / Think-Like framing, one
+             page per tab above. Wording is approximate placeholder text
+             pending the real placemat copy. The tool below is shared by
+             every tab. ── -->
+        <div class="card lesson-intro-card">
+
+            <div class="lesson-page" id="lesson-page-nn-intro">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build your first neural network from scratch and watch it turn inputs into outputs, layer by layer.</p>
                 </div>
-                <div class="virtual-controller-row">
-                    <div class="virtual-slider-pair">
-                        <div class="virtual-slider-col">
-                            <div class="vslider-wrap">
-                                <input type="range" class="vslider" id="virtual-slider-left" min="-100" max="100" value="0" step="1" />
-                            </div>
-                            <label class="virtual-slider-label" for="virtual-slider-left">Left</label>
-                            <span class="virtual-slider-value" id="virtual-slider-left-value">0</span>
-                        </div>
-                        <div class="virtual-slider-col">
-                            <div class="vslider-wrap">
-                                <input type="range" class="vslider" id="virtual-slider-right" min="-100" max="100" value="0" step="1" />
-                            </div>
-                            <label class="virtual-slider-label" for="virtual-slider-right">Right</label>
-                            <span class="virtual-slider-value" id="virtual-slider-right-value">0</span>
-                        </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>How does changing one weight change the whole network's output?</p>
                     </div>
-                    <div class="virtual-motor">
-                        <div class="virtual-motor-body">
-                            <div class="virtual-motor-blade" id="virtual-motor-blade"></div>
-                        </div>
-                        <span class="virtual-motor-label">Speed <span id="virtual-motor-value">0</span></span>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What's the smallest network that could still solve this problem?</p>
                     </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Add one input and one output to start with the simplest possible network.</li>
+                        <li>Click "Randomize weights," then press Run and watch the output change.</li>
+                        <li>Add a hidden layer and see how the diagram grows.</li>
+                    </ol>
                 </div>
             </div>
+
+            <div class="lesson-page hidden" id="lesson-page-wind">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Teach a network to respond to the wind — turning a wind sensor's readings into the right motor response.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What sensor readings tell you how strong the wind is blowing?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a scientist</em></h3>
+                        <p>How much training data do you need before the response feels smooth instead of jumpy?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your wind sensor as an input and your motor as an output.</li>
+                        <li>Collect a few seconds of data at a couple of different wind speeds.</li>
+                        <li>Train the network, then test it by changing the wind speed live.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-rotating-display">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Train a network to spin your display to the right position based on its inputs.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>How many training examples do you need to cover every position the display can reach?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What happens if the display overshoots the target position?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your position sensor as an input and the display's motor as an output.</li>
+                        <li>Move the display through its full range while collecting data.</li>
+                        <li>Train, then check whether it reaches each position accurately.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-dancing-plant">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Get your plant model swaying and dancing in response to a sensor's input.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an artist</em></h3>
+                        <p>What movements make the plant look most alive?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a data scientist</em></h3>
+                        <p>How do you turn one sensor reading into smooth, continuous motion instead of a jump?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect the sensor that should trigger movement as an input, motor as an output.</li>
+                        <li>Record a few examples each of "trigger" and "no trigger" states.</li>
+                        <li>Train and test — adjust the learning rate if the motion looks jerky.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-dancing-owl">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Train your owl to move its wings and head in response to sensor data.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>How do you combine two motors into one believable motion?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>What's the difference between the owl reacting instantly versus gradually?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Add two outputs, one for each motor — wings and head.</li>
+                        <li>Collect matching examples of each motor's motion for the same input.</li>
+                        <li>Train both together, then test with Play.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-revolving-door">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Train a network to open and control your revolving door based on sensor input.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What should happen if someone approaches from both sides at once?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a data scientist</em></h3>
+                        <p>How do you train for cases that rarely happen, like a door standing empty?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your proximity sensor as an input and the door's motor as an output.</li>
+                        <li>Collect examples for "someone approaching" and "clear."</li>
+                        <li>Train, then test at a few different approach speeds.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-smart-umbrella">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Teach your umbrella model to open or tilt automatically based on conditions.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What inputs would actually tell you it's starting to rain?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>How do you avoid the umbrella opening and closing over and over at the threshold?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your rain or tilt sensor as an input and the umbrella's motor as an output.</li>
+                        <li>Collect a range of readings, from dry/still to wet/windy.</li>
+                        <li>Train, then test where the threshold actually kicks in.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-flashlight">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Train a network to control your flashlight's brightness based on how fast you crank it.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Is the relationship between crank speed and brightness a straight line, or a curve?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a scientist</em></h3>
+                        <p>How would you test the model at both very slow and very fast cranking?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your crank-speed sensor as an input and brightness as an output.</li>
+                        <li>Crank at a few different speeds while collecting data.</li>
+                        <li>Train, then test slow cranking versus fast cranking.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-line-car">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Train your car to follow a line using its sensor readings.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>What should the car do if the line disappears from under both sensors?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>How does driving speed change how sharply the car needs to correct?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Add two line sensors as inputs and two wheel motors as outputs.</li>
+                        <li>Drive over the line collecting examples: centered, drifting left, drifting right.</li>
+                        <li>Train, then place the car on the line and hit Run.</li>
+                    </ol>
+                </div>
+            </div>
+
         </div>
 
-        <!-- ── Network card ──────────────────────────────────────── -->
-        <div class="card network-card">
+                <!-- ── Network card ──────────────────────────────────────── -->
+                <div class="card network-card">
 
             <div class="zoom-bar">
                 <button class="btn-link-toggle" id="show-activation-btn" title="Show/hide each layer's activation function">+ Activation function</button>
@@ -240,6 +512,10 @@
 
         </div>
 
+            </div>
+
+        </div>
+
     </div>
 
     <!-- ── Activation help popover ───────────────────────────────── -->
@@ -287,6 +563,21 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // ── Lesson tab switching ──
+        // Swaps which .lesson-page's Challenge/Think-Like framing is shown
+        // above the network-trainer tool; the tool itself is shared by
+        // every tab and is untouched by this.
+        window.switchTrainerTab = function (name) {
+            document.querySelectorAll('.lesson-page').forEach(function (page) {
+                page.classList.toggle('hidden', page.id !== 'lesson-page-' + name);
+            });
+            document.querySelectorAll('#lesson-tab-bar .tab-btn').forEach(function (btn) {
+                btn.classList.toggle('active', btn.id === 'tab-btn-' + name);
+            });
+        };
+    </script>
 
     <script type="py" src="https://raw.githubusercontent.com/tuftsceeo/NeuralNetworkEducation/refs/heads/main/Webpages/network-trainer/main.py"></script>
 </body>

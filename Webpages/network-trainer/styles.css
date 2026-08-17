@@ -2,9 +2,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-    --page-bg:      #e8e9ed;
+    /* White page background matches the Engineering with Bricks site
+       (engineeringwithbricks.com) rather than this app's earlier grey —
+       cards now need a visible border, not just a shadow, to read as
+       distinct from the page. */
+    --page-bg:      #ffffff;
     --card-bg:      #ffffff;
-    --card-shadow:  0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+    --card-shadow:  0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
     --card-radius:  20px;
 
     --border:       #e2e4ea;
@@ -42,6 +46,16 @@
     --out-border:   #bbf7d0;
     --eq-bg:        #fffbeb;
     --eq-border:    #fde68a;
+
+    /* Curriculum branding accent, matched to the "AI School of Magic" /
+       Engineering with Bricks placemat style. Used only for the header,
+       lesson tab bar, and Challenge/Think-Like framing boxes below —
+       the diagram color tokens above stay untouched. */
+    --accent:          #fcd700;
+    --accent-hover:    #e6c200;
+    --accent-text:     #1a1d2e;
+    --challenge-color: #c3157e;
+    --think-color:     #0a6e78;
 
     --font-ui:   'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
@@ -88,6 +102,8 @@ body {
 /* ── Page layout ───────────────────────────────────────────────── */
 .page-wrap {
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -96,9 +112,140 @@ body {
 /* ── Shared card shell ─────────────────────────────────────────── */
 .card {
     background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
 }
+
+/* ── Sidebar (devices) + main content (lesson framing + the tool) ──
+   Devices sits in a fixed-width left sidebar, same idea as
+   AI-School-of-Magic's .panel.sidebar; everything else sits in a
+   main column next to it instead of running full page width. ── */
+.container {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+.sidebar {
+    flex: 0 0 260px;
+    min-width: 260px;
+    max-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+@media (max-width: 800px) {
+    .container { flex-direction: column; }
+    .sidebar { flex: none; width: 100%; max-width: none; }
+}
+
+/* ── Curriculum header ────────────────────────────────────────── */
+.header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 20px;
+}
+.header-logo-ewb { width: 120px; height: auto; }
+.header-text h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: var(--text-primary);
+}
+.header-text p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+@media (max-width: 700px) {
+    .header { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+}
+
+/* ── Lesson tab bar ───────────────────────────────────────────── */
+.tab-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.tab-btn {
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tab-btn:hover:not(.active) { background: #f1f5f9; color: var(--text-primary); }
+.tab-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+/* ── Lesson intro card: Challenge / Think Like framing ───────────
+   Ported from AI-School-of-Magic's placemat styling. One .lesson-page
+   per tab, toggled by switchTrainerTab() in index.html; the tool below
+   (connect/network/training cards) is shared across every tab. ── */
+.lesson-intro-card { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.lesson-page.hidden { display: none; }
+.challenge-box {
+    border: 2px solid var(--challenge-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.challenge-box h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--challenge-color);
+}
+.challenge-box p { margin: 0; font-size: 13px; }
+.think-like-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.think-like-box {
+    flex: 1 1 240px;
+    border: 2px solid var(--think-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.think-like-box h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--think-color);
+}
+.think-like-box h3 em { font-style: italic; text-decoration: underline; }
+.think-like-box p { margin: 0; font-size: 13px; }
+
+/* ── Getting Started box: direct, concrete steps for this activity,
+   as opposed to the open-ended Challenge/Think-Like framing above.
+   Working name only — rename freely. ── */
+.getting-started-box {
+    border: 2px solid var(--blue-bright);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: var(--blue-light);
+}
+.getting-started-box h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+}
+.getting-started-box ol {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+.getting-started-box li { margin-bottom: 4px; }
+.getting-started-box li:last-child { margin-bottom: 0; }
 
 /* ── Browser compatibility warning ────────────────────────────── */
 .ble-warning-banner {
