@@ -72,7 +72,7 @@
              Getting Started framing, one page per tab above. Wording is
              approximate placeholder text pending the real placemat copy.
              The tool below is shared by every tab. ── -->
-        <details class="collapsible-box lesson-intro-card" open>
+        <details class="collapsible-box lesson-intro-card" id="lesson-details" open>
             <summary>Lesson details</summary>
 
             <div class="lesson-page" id="lesson-page-nn-intro">
@@ -656,6 +656,8 @@
             });
             var label = document.getElementById('current-lesson-label');
             if (label && activeBtn) label.textContent = activeBtn.textContent;
+            var details = document.getElementById('lesson-details');
+            if (details) details.open = true;
         };
     </script>
 
