@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Guide — Neural Network Trainer</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&family=Varela+Round&family=Inconsolata:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* SCAFFOLD — colors/fonts borrowed from index.html so this reads as the
+     same site; content below is placeholder structure, not final copy. */
+  :root {
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #333129;
+    --text-secondary: #6b6552;
+    --accent: #fcd700;
+    --border: #e2e8f0;
+    --radius: 16px;
+    --challenge-color: #c3157e;
+    --think-color: #0a6e78;
+  }
+  body {
+    font-family: 'Droid Sans', system-ui, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 20px;
+  }
+  .header-text { text-align: left; }
+  .header h1 { margin: 0; font-size: 2.2rem; color: var(--text-primary); font-family: 'Varela Round', 'Droid Sans', sans-serif; }
+  .header p { margin: 8px 0 0; color: var(--text-secondary); }
+  .back-btn {
+    display: inline-block;
+    justify-self: end;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .back-btn:hover { border-color: var(--think-color); color: var(--think-color); }
+  @media (max-width: 700px) {
+    .header { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .header-text { text-align: center; }
+  }
+
+  main { width: 100%; max-width: 1200px; }
+
+  /* TOC nav — mirrors index.html's tab-bar pill styling */
+  .toc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .toc h2 { margin: 0 0 4px; font-size: 1rem; color: var(--text-secondary); }
+  .toc-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toc-row a {
+    background: #f1f5f9;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+  .toc-row a:hover { background: var(--accent); border-color: var(--accent); }
+
+  .overview {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .overview h2 { margin-top: 0; }
+  .placeholder { color: var(--text-secondary); font-style: italic; }
+
+  .lesson-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    scroll-margin-top: 16px;
+  }
+  .lesson-card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .lesson-card-head h2 { margin: 0; }
+  .student-challenge {
+    border-left: 3px solid var(--challenge-color);
+    padding-left: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin: 10px 0 16px;
+  }
+  .lesson-card h3 { margin: 16px 0 6px; font-size: 1rem; color: var(--think-color); }
+  .lesson-card h3:first-of-type { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-text">
+    <h1>&#128214; Teacher Guide</h1>
+    <p>What's actually happening under each lesson, and how to help when it doesn't work.</p>
+  </div>
+  <a class="back-btn" href="index.html">&#8592; Back to Trainer</a>
+</div>
+
+<main>
+  <div class="overview">
+    <h2>Overview</h2>
+    <p class="placeholder">Placeholder — fill in before class: browser requirements (this app also needs Web
+      Bluetooth for real hardware, with a virtual-controller fallback when it's unavailable), whether/how work is
+      saved between sessions, and any settings worth tuning live rather than leaving on defaults.</p>
+  </div>
+
+  <nav class="toc" aria-label="Jump to a lesson">
+    <h2>Lessons</h2>
+    <div class="toc-row">
+      <a href="#l0">0. Neural Network Introduction</a>
+      <a href="#l1">1. Windmill</a>
+      <a href="#l2">2. Rotating Display</a>
+      <a href="#l3">3. Dancing Plant</a>
+      <a href="#l4">4. Dancing Owl</a>
+      <a href="#l5">5. Revolving Door</a>
+      <a href="#l6">6. Smart Umbrella</a>
+      <a href="#l7">7. Hand-cranked Flashlight</a>
+      <a href="#l8">8. Line Following Car</a>
+    </div>
+  </nav>
+
+  <!-- Lesson card template (repeated per lesson, placeholder copy only —
+       student-challenge quotes are the real Challenge-box text from
+       index.html; everything else here is scaffold for you to fill in). -->
+  <section class="lesson-card" id="l0">
+    <div class="lesson-card-head"><h2>Lesson 0: Neural Network Introduction</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build your first neural network from scratch and watch
+      it turn inputs into outputs, layer by layer.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l1">
+    <div class="lesson-card-head"><h2>Lesson 1: Windmill</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a windmill driven by a single motor, and use a
+      joystick to simulate wind — the harder you push it, the faster the windmill spins.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l2">
+    <div class="lesson-card-head"><h2>Lesson 2: Rotating Display</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a spinning display with a yellow side and a green
+      side, and control its motion with a color sensor facing the spinning part.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l3">
+    <div class="lesson-card-head"><h2>Lesson 3: Dancing Plant</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a plant that dances (motors spinning) during the
+      day and goes still at night, using a color sensor to tell day from night.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l4">
+    <div class="lesson-card-head"><h2>Lesson 4: Dancing Owl</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Rebuild your Dancing Plant into an owl that dances at
+      night instead of during the day, using the same color-sensor idea in reverse.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l5">
+    <div class="lesson-card-head"><h2>Lesson 5: Revolving Door</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a revolving door that starts spinning at a
+      constant speed whenever something approaches the color sensor.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l6">
+    <div class="lesson-card-head"><h2>Lesson 6: Smart Umbrella</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build an umbrella that raises itself at a steady speed
+      whenever its color sensor detects rain (blue).&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l7">
+    <div class="lesson-card-head"><h2>Lesson 7: Hand-cranked Flashlight</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a hand-crank onto a single motor, and make turning
+      it faster brighten the light on a color sensor.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+
+  <section class="lesson-card" id="l8">
+    <div class="lesson-card-head"><h2>Lesson 8: Line Following Car</h2></div>
+    <p class="student-challenge">Student challenge: &ldquo;Build a car with a double motor and two light sensors on
+      the back, and train it to follow a darkly colored line.&rdquo;</p>
+    <h3>What's actually happening</h3>
+    <p class="placeholder">Placeholder — what should a teacher know about the underlying mechanics here?</p>
+    <h3>What &ldquo;working&rdquo; looks like</h3>
+    <p class="placeholder">Placeholder — what does success look like, and what's the most common thing that goes wrong?</p>
+  </section>
+</main>
+
+</body>
+</html>
