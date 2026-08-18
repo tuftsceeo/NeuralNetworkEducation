@@ -8,7 +8,11 @@
     <title>Neural Network Trainer</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts match AI-School-of-Magic / Engineering with Bricks house
+         style: Droid Sans for body/buttons, Varela Round for the page
+         title, Inconsolata for anything monospace. -->
+    <link href="https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&family=Varela+Round&family=Inconsolata:wght@400;700&display=swap" rel="stylesheet" />
     <py-config src="./pyscript.toml"></py-config>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
@@ -20,6 +24,34 @@
     </div>
 
     <div class="page-wrap" id="page-wrap" style="display:none">
+
+        <!-- ── Curriculum header ────────────────────────────────────── -->
+        <div class="header">
+            <div class="header-text">
+                <h1>Neural Network Trainer</h1>
+                <p>Train a live neural network and watch it drive real (or virtual) hardware.</p>
+            </div>
+            <div class="header-logo-ewb-wrap">
+                <img class="header-logo-ewb" src="images/EngineeringWithBricks.png" alt="Engineering with Bricks logo">
+                <a class="teacher-guide-btn" href="teacher-guide.html">&#128214; Teacher Guide</a>
+            </div>
+        </div>
+
+        <!-- ── Lesson tab bar (collapsible) ─────────────────────────── -->
+        <details class="collapsible-box tab-bar-collapsible" id="tab-bar-details" open>
+            <summary>Lesson: <span id="current-lesson-label">0. Neural Network Introduction</span></summary>
+            <div class="tab-bar" id="lesson-tab-bar">
+                <button class="tab-btn active" id="tab-btn-nn-intro" onclick="switchTrainerTab('nn-intro')">0. Neural Network Introduction</button>
+                <button class="tab-btn" id="tab-btn-wind" onclick="switchTrainerTab('wind')">1. Windmill</button>
+                <button class="tab-btn" id="tab-btn-rotating-display" onclick="switchTrainerTab('rotating-display')">2. Rotating Display</button>
+                <button class="tab-btn" id="tab-btn-dancing-plant" onclick="switchTrainerTab('dancing-plant')">3. Dancing Plant</button>
+                <button class="tab-btn" id="tab-btn-dancing-owl" onclick="switchTrainerTab('dancing-owl')">4. Dancing Owl</button>
+                <button class="tab-btn" id="tab-btn-revolving-door" onclick="switchTrainerTab('revolving-door')">5. Revolving Door</button>
+                <button class="tab-btn" id="tab-btn-smart-umbrella" onclick="switchTrainerTab('smart-umbrella')">6. Smart Umbrella</button>
+                <button class="tab-btn" id="tab-btn-flashlight" onclick="switchTrainerTab('flashlight')">7. Hand-cranked Flashlight</button>
+                <button class="tab-btn" id="tab-btn-line-car" onclick="switchTrainerTab('line-car')">8. Line Following Car</button>
+            </div>
+        </details>
 
         <!-- ── Browser compatibility warning (Web Bluetooth) ───────── -->
         <div id="ble-warning-banner" class="ble-warning-banner hidden">
@@ -36,7 +68,326 @@
             </button>
         </div>
 
-        <!-- ── Connection card ───────────────────────────────────── -->
+        <!-- ── Lesson details (collapsible): Challenge / Think-Like /
+             Getting Started framing, one page per tab above. Wording is
+             approximate placeholder text pending the real placemat copy.
+             The tool below is shared by every tab. ── -->
+        <details class="collapsible-box lesson-intro-card" open>
+            <summary>Lesson details</summary>
+
+            <div class="lesson-page" id="lesson-page-nn-intro">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build your first neural network from scratch and watch it turn inputs into outputs, layer by layer.</p>
+                    <img src="images/nnlego.png" loading="lazy" alt="LEGO build for exploring a neural network">
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>How does changing one weight change the whole network's output?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an Anthropologist</em></h3>
+                        <p>Try out adding and removing nodes. How does that change the output? Can you figure out what the different types of nodes do?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Add one input and one output to start with the simplest possible network.</li>
+                        <li>Click "Randomize weights," then press Run and watch the output change.</li>
+                        <li>Add a hidden layer and see how the diagram grows.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-wind">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a windmill driven by a single motor, and use a joystick to simulate wind — the harder you push it, the faster the windmill spins.</p>
+                    <img src="images/neuralnetLEGOwindmill.png" loading="lazy" alt="LEGO windmill build for the Windmill activity">
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>How does the weight (slope) control how much the joystick affects the windmill's speed?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Once the windmill only spins one way, what should "wind" pushing the wrong direction actually do?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Level 1 — Slope: connect the joystick as an input and the windmill's motor as an output. Adjust the weight until moving the joystick changes the spin speed.</li>
+                        <li>Level 2 — Bias: add a bias so the windmill spins at a constant idle speed when the joystick is at 0, then speeds up as you push it.</li>
+                        <li>Level 3 — Activation: add an activation function (try ReLU) so the windmill only turns clockwise — pushing the joystick backward should simply stop it, not reverse it.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-rotating-display">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a spinning display with a yellow side and a green side, and control its motion with a color sensor facing the spinning part.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a data scientist</em></h3>
+                        <p>How do the weight and bias work together to set both the direction and the baseline speed?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>Why does the color sensor's hue <em>value</em>, not just "it's yellow" or "it's green," matter to the network?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Level 1 — Weight &amp; bias: get the motor spinning at one constant speed with no sensor input yet — that's pure bias, no weight needed.</li>
+                        <li>Level 2 — Direction: add yellow and green sides plus a color sensor. Using hue as the input (roughly: above 65 = green, below = yellow), set the weight and bias so green spins one direction and yellow spins the other.</li>
+                        <li>Level 3 — Custom activation: instead of switching direction, build a custom activation where values below 0 become a small number (slow) and values above 0 become a larger number (fast), so green speeds up and yellow slows down.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-dancing-plant">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a plant that dances (motors spinning) during the day and goes still at night, using a color sensor to tell day from night.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a data scientist</em></h3>
+                        <p>Why does reflection work better than hue for telling yellow (day) apart from blue (night) here?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>What does subtracting the blue reading, then applying ReLU, actually do to a night-time reading?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your color sensor as input and the motor(s) as output, reading reflection (yellow reads higher than blue).</li>
+                        <li>Set the hidden layer to subtract the blue reading (plus a small margin) from the input, then apply ReLU — this clamps any night-time (blue) value to exactly 0.</li>
+                        <li>Test in daylight (yellow) vs. darkness (blue) and confirm the plant only dances when yellow is detected.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-dancing-owl">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Rebuild your Dancing Plant into an owl that dances at night instead of during the day, using the same color-sensor idea in reverse.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>What changes if you swap from reflection to hue as your input?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Why does subtracting yellow's hue value, instead of blue's, flip which time of day triggers movement?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Start from your Dancing Plant network, but switch the color sensor's reading from reflection to hue.</li>
+                        <li>Subtract yellow's hue value from the input instead of blue's, then apply ReLU — daytime (yellow) readings now go negative and clamp to 0.</li>
+                        <li>Test at night (blue) vs. during the day (yellow) and confirm the owl only dances after dark.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-revolving-door">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a revolving door that starts spinning at a constant speed whenever something approaches the color sensor.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Why might this task need more than one neuron, instead of just one?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a scientist</em></h3>
+                        <p>Sigmoid outputs are never quite 0 — what does that mean for a door that's supposed to be completely still?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your color sensor as input and the door's motor as output. Try a Sigmoid activation — it gives a clean, bounded on/off-style response.</li>
+                        <li>Since Sigmoid never actually reaches 0, subtract a small offset from its output so "nothing approaching" reads as truly stopped, not just slow.</li>
+                        <li>Bonus ⭐: swap in a different activation function (ReLU, Tanh, Softplus) and adjust the other weights/biases until you get the same door behavior — compare how each one gets there differently.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-smart-umbrella">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build an umbrella that raises itself at a steady speed whenever its color sensor detects rain (blue).</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a scientist</em></h3>
+                        <p>Why does Sigmoid work well here compared to leaving the output unclamped?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Once the umbrella is fully open, what should make it stop — even if it's still raining?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect your rain sensor (color sensor) as input and the umbrella's motor as output, using Sigmoid so speed stays within a consistent range.</li>
+                        <li>Add a second color sensor that detects the umbrella's own position (open vs. closed).</li>
+                        <li>Combine both inputs into one output so the "raining" signal is overruled once the position sensor shows fully open — work out weights/biases so one input can cancel out the other.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-flashlight">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a hand-crank onto a single motor, and make turning it faster brighten the light on a color sensor.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>This time the color sensor is your <em>output</em>, not your input — how does that change your network's setup?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>Is the relationship between crank speed and brightness a straight line, or a curve?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Connect the crank's motor as an input (reading its rotation) and set the color sensor's light as your output.</li>
+                        <li>Set the weight so a faster crank produces a brighter light.</li>
+                        <li>Test cranking slowly and quickly, and adjust the weight/bias until the brightness range feels right.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+            <div class="lesson-page hidden" id="lesson-page-line-car">
+                <div class="lesson-main">
+                <div class="challenge-box">
+                    <h3>Challenge</h3>
+                    <p>Build a car with a double motor and two light sensors on the back, and train it to follow a darkly colored line.</p>
+                </div>
+                <div class="think-like-row">
+                    <div class="think-like-box">
+                        <h3>Think Like <em>an engineer</em></h3>
+                        <p>Why do you need two neurons here instead of one?</p>
+                    </div>
+                    <div class="think-like-box">
+                        <h3>Think Like <em>a programmer</em></h3>
+                        <p>What happens if both wheels can only ever go positive — why would the car just spin instead of steering?</p>
+                    </div>
+                </div>
+
+                <div class="getting-started-box">
+                    <h3>Getting Started</h3>
+                    <ol>
+                        <li>Add two light-sensor inputs (using saturation) and two wheel-motor outputs — one neuron per wheel.</li>
+                        <li>When a sensor drifts off the line, speed up the wheel on that same side to steer back onto it.</li>
+                        <li>Make sure at least one wheel's output can go negative — otherwise both wheels only ever speed up, and the car just spins in place.</li>
+                    </ol>
+                </div>
+                </div>
+
+                <div class="building-ideas">
+                    <img class="building-ideas-banner" src="images/buildingideas.png" alt="Building Ideas">
+                    <div class="building-idea-photo">Add a build photo</div>
+                    <hr class="building-ideas-divider">
+                    <div class="building-idea-photo">Add a build photo</div>
+                </div>
+            </div>
+
+        </details>
+
+        <!-- ── Devices card: left-aligned, sits right above the network
+             diagram so it stays visible even with both lesson sections
+             above collapsed. ── -->
         <div class="card connect-card">
             <div class="connect-header">
                 <span class="connect-title">Devices</span>
@@ -287,6 +638,26 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // ── Lesson tab switching ──
+        // Swaps which .lesson-page's Challenge/Think-Like framing is shown
+        // above the network-trainer tool; the tool itself is shared by
+        // every tab and is untouched by this.
+        window.switchTrainerTab = function (name) {
+            document.querySelectorAll('.lesson-page').forEach(function (page) {
+                page.classList.toggle('hidden', page.id !== 'lesson-page-' + name);
+            });
+            var activeBtn = null;
+            document.querySelectorAll('#lesson-tab-bar .tab-btn').forEach(function (btn) {
+                var isActive = btn.id === 'tab-btn-' + name;
+                btn.classList.toggle('active', isActive);
+                if (isActive) activeBtn = btn;
+            });
+            var label = document.getElementById('current-lesson-label');
+            if (label && activeBtn) label.textContent = activeBtn.textContent;
+        };
+    </script>
 
     <script type="py" src="https://raw.githubusercontent.com/tuftsceeo/NeuralNetworkEducation/refs/heads/main/Webpages/network-trainer/main.py"></script>
 </body>
